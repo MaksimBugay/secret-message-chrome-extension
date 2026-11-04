@@ -19,5 +19,11 @@
   },
   "autoDecodingCommandDesc": {
     "message": "Automatisches Entschlüsseln ein- oder ausschalten"
+  },
+  "convertMenuTitle": {
+    "message": "In geheime Nachricht umwandeln (Strg+Umschalt+E)"
+  },
+  "convertCommandDesc": {
+    "message": "Text im Eingabefeld in eine geheime Nachricht umwandeln"
   }
 }

@@ -1,4 +1,5 @@
 const MENU_ITEM_ID = "openSecretMessageMenuItem";
+const CONVERT_MENU_ITEM_ID = "convertMenuItem";
 const AUTO_DECODING_MENU_ITEM_ID = "autoDecodingMenuItem";
 // Read by js/hover-decoder.js; auto decoding is off until turned on from the menu or with the hot key.
 const AUTO_DECODING_KEY = "autoDecoding";
@@ -28,6 +29,7 @@ const WIDGET_SCRIPTS = [
     "js/lib/client.min.js",
     "js/lib/detect.min.js",
     "js/lib/device-secret.js",
+    "js/conversation-context.js",
     "js/secret-message-widget.js"
 ];
 
@@ -37,6 +39,12 @@ chrome.runtime.onInstalled.addListener(() => {
             id: MENU_ITEM_ID,
             title: chrome.i18n.getMessage("menuTitle"),
             contexts: ["all"],
+            documentUrlPatterns: ["http://*/*", "https://*/*"]
+        });
+        chrome.contextMenus.create({
+            id: CONVERT_MENU_ITEM_ID,
+            title: chrome.i18n.getMessage("convertMenuTitle"),
+            contexts: ["editable"],
             documentUrlPatterns: ["http://*/*", "https://*/*"]
         });
         chrome.contextMenus.create({
@@ -78,9 +86,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
 });
 
-chrome.commands.onCommand.addListener(async (command) => {
+chrome.commands.onCommand.addListener(async (command, tab) => {
     if (command === "toggle-auto-decoding") {
         await setAutoDecoding(!(await isAutoDecodingOn()));
+    } else if (command === "convert-focused-text") {
+        convertFocusedText(tab);
     }
 });
 
@@ -91,26 +101,33 @@ chrome.commands.onCommand.addListener(async (command) => {
 // protected http(s) pages is expected, not an error.
 const NO_ACCESS_ERROR = /cannot access|cannot be scripted/i;
 
-const openWidget = (tab) => {
+// Runs func in the page once the widget is injected.
+const inWidget = (func) => (tab) => {
     if (!/^https?:/.test(tab?.url ?? "")) {
         return;
     }
-    showWidget(tab).catch((error) => {
+    callWidget(tab, func).catch((error) => {
         if (!NO_ACCESS_ERROR.test(error.message)) console.error(error);
     });
 };
+
+const openWidget = inWidget(() => SecretMessageWidget.show());
+// The text in the focused text box becomes the private message and is replaced with the public phrase.
+const convertFocusedText = inWidget(() => SecretMessageWidget.convertFocused());
 
 chrome.action.onClicked.addListener(openWidget);
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === MENU_ITEM_ID) {
         openWidget(tab);
+    } else if (info.menuItemId === CONVERT_MENU_ITEM_ID) {
+        convertFocusedText(tab);
     } else if (info.menuItemId === AUTO_DECODING_MENU_ITEM_ID) {
         setAutoDecoding(info.checked);
     }
 });
 
-async function showWidget(tab) {
+async function callWidget(tab, func) {
     const target = {tabId: tab.id};
     // The libraries declare top-level classes and constants, so they can be injected only once per page.
     const [{result: loaded}] = await chrome.scripting.executeScript({
@@ -123,5 +140,5 @@ async function showWidget(tab) {
     if (!loaded.widget) {
         await chrome.scripting.executeScript({target, files: WIDGET_SCRIPTS});
     }
-    await chrome.scripting.executeScript({target, func: () => SecretMessageWidget.show()});
+    await chrome.scripting.executeScript({target, func});
 }

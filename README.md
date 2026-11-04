@@ -15,6 +15,16 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   - the topic is set to `FB post` (facebook.com), `VK post` (vk.com / vk.ru) or `Web chat` (any other site);
   - type the private message and press **Encode message** – the public phrase is copied to the clipboard.
     If the clipboard is not available, the phrase is shown in the widget instead.
+- **Convert in place:** type the private message in any text box (a comment, a reply, a chat message) and press
+  `Ctrl+Shift+E` (`MacCtrl+Shift+E`) or choose **Convert into secret message** in the text box's context menu:
+  - what the reply answers is added to the message history (cut to the history limit, not added twice): the caption
+    of the commented post or the answered comment (Facebook, VK; a reply starting with the commenter's name or, on
+    Facebook, a box labelled "Reply to …"), or the last message of the open chat (Telegram Web);
+  - the message is encoded with the widget's current obfuscation settings and history, without opening the widget;
+    a small note above the text box shows the progress;
+  - the text in the box is replaced with the public phrase (undo with `Ctrl+Z`). If the text was changed meanwhile,
+    the phrase is copied to the clipboard instead;
+  - without a workspace or password the widget opens on Settings → Encryption with the missing field focused.
 - **Auto decoding** (Facebook, Messenger, VK, Telegram Web) is **off by default**. Turn it on or off with the
   context menu item *Auto-decode secret messages* or `Ctrl+Shift+L` (`MacCtrl+Shift+L`); the setting applies to all
   tabs and the toolbar icon shows an **ON** badge while it is on. It uses the obfuscation settings saved with the
@@ -38,6 +48,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | `manifest.json` | MV3 manifest, `_execute_action` hot key, `activeTab`, content scripts for Facebook / VK / Telegram |
 | `background.js` | Icon / hot key / menu handlers, one-time script injection, auto decoding on / off |
 | `js/secret-message-widget.js`, `css/secret-message-widget.css` | The widget (shadow DOM) |
+| `js/conversation-context.js` | What a reply answers (post caption, comment, last chat message) for *Convert into secret message*; site selectors for Facebook / VK / Telegram |
 | `js/hover-decoder.js` | Content script for Facebook / VK / Telegram: auto decoding – shows the private message after the phrase under the mouse pointer |
 | `js/lib/secret-message.js` | Encode / decode (copy of the site's script) |
 | `js/lib/security-utils.js` | AES-GCM / PBKDF2 / SHA-256 helpers (copy of the site's script) |
@@ -53,6 +64,6 @@ the site changes.
 
 ## Development
 Open `chrome://extensions`, enable *Developer mode*, *Load unpacked* and select this folder.
-Both hot keys can be changed in `chrome://extensions/shortcuts`.
+All hot keys can be changed in `chrome://extensions/shortcuts`.
 
 To package: `zip -r secret-message.zip manifest.json background.js js css images _locales LICENSE`

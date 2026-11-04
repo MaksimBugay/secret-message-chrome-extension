@@ -52,6 +52,13 @@
         "mac": "MacCtrl+Shift+L"
       },
       "description": "__MSG_autoDecodingCommandDesc__"
+    },
+    "convert-focused-text": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "MacCtrl+Shift+E"
+      },
+      "description": "__MSG_convertCommandDesc__"
     }
   },
   "action": {

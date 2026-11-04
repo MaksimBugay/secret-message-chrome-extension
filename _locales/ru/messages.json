@@ -19,5 +19,11 @@
   },
   "autoDecodingCommandDesc": {
     "message": "Включить или выключить автоматическую расшифровку"
+  },
+  "convertMenuTitle": {
+    "message": "Превратить в секретное сообщение (Ctrl+Shift+E)"
+  },
+  "convertCommandDesc": {
+    "message": "Превратить текст в поле ввода в секретное сообщение"
   }
 }

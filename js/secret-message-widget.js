@@ -165,7 +165,9 @@ window.SecretMessageWidget = (function () {
     host.style.cssText = 'all: initial; position: fixed; z-index: 2147483646; display: none;';
     const shadow = host.attachShadow({mode: 'closed'});
     shadow.innerHTML = TEMPLATE;
-    loadStyles();
+    shadow.prepend(stylesheet(() => {
+        if (isShown()) clampPosition();
+    }));
     document.documentElement.appendChild(host);
 
     const root = shadow.querySelector('.smw');
@@ -174,15 +176,13 @@ window.SecretMessageWidget = (function () {
     const form = ui.form;
     const header = shadow.querySelector('.smw-header');
 
-    function loadStyles() {
+    function stylesheet(onLoad) {
         // Extension resources are not subject to the page CSP, unlike an inline <style>.
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = chrome.runtime.getURL('css/secret-message-widget.css');
-        link.addEventListener('load', () => {
-            if (isShown()) clampPosition();
-        });
-        shadow.prepend(link);
+        if (onLoad) link.addEventListener('load', onLoad);
+        return link;
     }
 
     //-----------------------state: position, collapse, visibility--------------------------------------------------
@@ -454,6 +454,23 @@ window.SecretMessageWidget = (function () {
         return ` Selected text added to history.${removedNote(removed)}`;
     }
 
+    // With the current obfuscation settings and history.
+    function encode(input) {
+        return textToSecreteMessagePublicPhrase(input, ui.password.value, ui.workspace.value,
+            ui.ownerSignature.value || null, {
+            topic: ui.topic.value, style: ui.style.value,
+            history: history.filter((message) => message.trim()), locale: ui.locale.value
+        });
+    }
+
+    // Returns the note for the status.
+    function appendPhraseToHistory(phrase) {
+        if (!ui.appendToHistory.checked) return '';
+        const removed = appendMessageToHistory(phrase);
+        if (removed === null) return ` Not appended: this phrase alone exceeds ${HISTORY_LIMIT} characters.`;
+        return ` Public phrase appended to history.${removedNote(removed)}`;
+    }
+
     async function copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
@@ -617,11 +634,7 @@ window.SecretMessageWidget = (function () {
         status('Encrypting and saving your message…');
         await withLockedControls(async () => {
             try {
-                const phrase = await textToSecreteMessagePublicPhrase(input, ui.password.value, ui.workspace.value,
-                    ui.ownerSignature.value || null, {
-                    topic: ui.topic.value, style: ui.style.value,
-                    history: history.filter((message) => message.trim()), locale: ui.locale.value
-                });
+                const phrase = await encode(input);
                 let message;
                 if (await copyToClipboard(phrase)) {
                     message = 'Public phrase copied to the clipboard – paste it into the chat.';
@@ -630,15 +643,7 @@ window.SecretMessageWidget = (function () {
                     showResult(phrase);
                     message = 'Clipboard is not available – copy the public phrase below.';
                 }
-                if (ui.appendToHistory.checked) {
-                    const removed = appendMessageToHistory(phrase);
-                    if (removed === null) {
-                        message += ` Not appended: this phrase alone exceeds ${HISTORY_LIMIT} characters.`;
-                    } else {
-                        message += ` Public phrase appended to history.${removedNote(removed)}`;
-                    }
-                }
-                status(message);
+                status(message + appendPhraseToHistory(phrase));
             } catch (error) {
                 status(error.message || 'Unable to process the message. Please try again.', true);
             } finally {
@@ -684,13 +689,165 @@ window.SecretMessageWidget = (function () {
         return 'Web chat';
     }
 
+    function reveal() {
+        setShown(true);
+        if (state.collapsed) setCollapsed(false);
+    }
+
+    //-----------------------convert the text in the focused text box (menu / hot key)--------------------------------
+
+    const TOAST_TIME = 4000;
+    const toastHost = document.createElement('secret-message-toast');
+    toastHost.style.cssText = 'all: initial; position: fixed; z-index: 2147483647; display: none;';
+    const toastShadow = toastHost.attachShadow({mode: 'closed'});
+    toastShadow.innerHTML = `<div class="smw-toast" role="status" aria-live="polite"><span class="smw-logo">${ICONS.logo}</span><p></p></div>`;
+    // The first toast may be shown before its styles are loaded.
+    toastShadow.prepend(stylesheet(() => {
+        if (toastHost.style.display !== 'none') placeToast();
+    }));
+    document.documentElement.appendChild(toastHost);
+    const toast = toastShadow.querySelector('.smw-toast');
+    let toastNear = null;
+    let toastTimer = null;
+
+    // Above the text box (below it at the top of the window), or at the bottom of the window.
+    function placeToast() {
+        const viewport = document.documentElement;
+        const size = toastHost.getBoundingClientRect();
+        const anchor = toastNear?.isConnected ? toastNear.getBoundingClientRect() : null;
+        const left = anchor ? anchor.left : (viewport.clientWidth - size.width) / 2;
+        let top = anchor ? anchor.top - size.height - 8 : viewport.clientHeight - size.height - 24;
+        if (anchor && top < EDGE_MARGIN) top = anchor.bottom + 8;
+        toastHost.style.left = `${Math.min(Math.max(EDGE_MARGIN, left), viewport.clientWidth - size.width - EDGE_MARGIN)}px`;
+        toastHost.style.top = `${Math.min(Math.max(EDGE_MARGIN, top), viewport.clientHeight - size.height - EDGE_MARGIN)}px`;
+    }
+
+    // Stays until replaced by the next one when not closing.
+    function notify(message, {error = false, near = null, closing = true} = {}) {
+        clearTimeout(toastTimer);
+        toast.querySelector('p').textContent = message;
+        toast.dataset.error = String(error);
+        toastNear = near;
+        toastHost.style.display = 'block';
+        placeToast();
+        if (closing) toastTimer = setTimeout(() => { toastHost.style.display = 'none'; }, TOAST_TIME);
+    }
+
+    // The text box with the cursor: a text input, a textarea or the root of a rich text editor (contenteditable).
+    function focusedEditor() {
+        let element = document.activeElement;
+        while (element?.shadowRoot?.activeElement) element = element.shadowRoot.activeElement;
+        if (element instanceof HTMLTextAreaElement ||
+            (element instanceof HTMLInputElement && /^(text|search)$/.test(element.type))) {
+            return element;
+        }
+        if (!element?.isContentEditable) return null;
+        while (element.parentElement?.isContentEditable) element = element.parentElement;
+        return element;
+    }
+
+    const isTextField = (editor) => editor instanceof HTMLInputElement || editor instanceof HTMLTextAreaElement;
+    const editorText = (editor) => (isTextField(editor) ? editor.value : SecretMessageConversationContext.readableText(editor));
+
+    const pause = () => new Promise((resolve) => setTimeout(resolve, 50));
+    const sameText = (a, b) => a.replace(/️/g, '').replace(/\s+/g, ' ').trim() ===
+        b.replace(/️/g, '').replace(/\s+/g, ' ').trim();
+
+    // insertText goes through the editor's own input handling (Facebook's Lexical, Telegram, VK) and can be undone.
+    async function replaceEditorText(editor, phrase) {
+        editor.focus();
+        if (isTextField(editor)) {
+            editor.select();
+            if (document.execCommand('insertText', false, phrase)) return true;
+            // The prototype's setter keeps React-controlled fields in sync.
+            Object.getOwnPropertyDescriptor(Object.getPrototypeOf(editor), 'value').set.call(editor, phrase);
+            editor.dispatchEvent(new Event('input', {bubbles: true}));
+            return true;
+        }
+        // Rich text editors (Facebook's Lexical) take the selection over on the selectionchange event, after this task,
+        // and apply input to their own selection; they also update the page after the input event.
+        const selectAll = async () => {
+            window.getSelection().selectAllChildren(editor);
+            await pause();
+        };
+        await selectAll();
+        document.execCommand('insertText', false, phrase);
+        await pause();
+        if (sameText(editorText(editor), phrase)) return true;
+        // Editors ignoring insertText still handle pasted text.
+        await selectAll();
+        const clipboardData = new DataTransfer();
+        clipboardData.setData('text/plain', phrase);
+        editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData, bubbles: true, cancelable: true}));
+        await pause();
+        return sameText(editorText(editor), phrase);
+    }
+
+    const CONTEXT_NAMES = {post: 'Post caption', comment: 'Answered comment', message: 'Last chat message'};
+
+    // Cut to the history limit; not added again while it is still in the history.
+    function addContextToHistory(context) {
+        const text = context.text.slice(0, HISTORY_LIMIT).replace(/[\uD800-\uDBFF]$/, '');
+        if (history.includes(text)) return '';
+        appendMessageToHistory(text);
+        return ` ${CONTEXT_NAMES[context.kind]} added to history.`;
+    }
+
+    async function convertFocused() {
+        // Read before anything is awaited: the focus and the page may change meanwhile.
+        const editor = focusedEditor();
+        const input = editor ? editorText(editor) : '';
+        if (!input.trim()) {
+            notify('Put the cursor in a text box with your private message first.', {error: true, near: editor});
+            return;
+        }
+        const context = SecretMessageConversationContext.find(editor, input);
+        await ready;
+        if (busy) {
+            notify('Secret Message is busy – try again in a moment.', {error: true, near: editor});
+            return;
+        }
+        const missing = [!ui.workspace.value.trim() && 'workspace', !ui.password.value && 'password'].filter(Boolean);
+        if (missing.length) {
+            reveal();
+            showPasswordSettings();
+            status(`Enter the ${missing.join(' and ')} first, then convert again.`, true);
+            (ui.workspace.value.trim() ? ui.password : ui.workspace).focus();
+            return;
+        }
+        const added = context ? addContextToHistory(context) : '';
+        notify('Encrypting your message…', {near: editor, closing: false});
+        await withLockedControls(async () => {
+            try {
+                const phrase = await encode(input);
+                appendPhraseToHistory(phrase);
+                // Not over text typed meanwhile.
+                const changed = !editor.isConnected || editorText(editor) !== input;
+                const reason = changed ? 'The text box changed meanwhile' : 'The text could not be replaced';
+                if (!changed && await replaceEditorText(editor, phrase)) {
+                    notify(`Replaced with the public phrase.${added}`, {near: editor});
+                } else if (await copyToClipboard(phrase)) {
+                    notify(`${reason} – the public phrase is copied to the clipboard.`, {near: editor});
+                } else {
+                    toastHost.style.display = 'none';
+                    reveal();
+                    selectTab('tab', 'derivation');
+                    showResult(phrase);
+                    status(`${reason} – copy the public phrase below.`);
+                }
+            } catch (error) {
+                notify(error.message || 'Unable to encode the message. Please try again.', {error: true, near: editor});
+            }
+        });
+    }
+
     return Object.freeze({
+        convertFocused,
         // Icon click / hot key / menu: the text selected on the page goes to the history, the topic follows the site.
         show() {
             const selection = window.getSelection()?.toString().trim() ?? '';
             ready.then(() => {
-                setShown(true);
-                if (state.collapsed) setCollapsed(false);
+                reveal();
                 ui.topic.value = pageTopic();
                 status(`Topic set to “${ui.topic.value}”.${addSelectionToHistory(selection)}`);
                 // Without a password nothing can be encoded, so open on the Settings tab.

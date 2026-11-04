@@ -22,5 +22,11 @@
   },
   "autoDecodingCommandDesc": {
     "message": "Turn auto decoding of secret messages on or off"
+  },
+  "convertMenuTitle": {
+    "message": "Convert into secret message (Ctrl+Shift+E)"
+  },
+  "convertCommandDesc": {
+    "message": "Convert the text in the focused text box into a secret message"
   }
 }

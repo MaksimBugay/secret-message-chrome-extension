@@ -19,5 +19,11 @@
   },
   "autoDecodingCommandDesc": {
     "message": "Activer ou désactiver le déchiffrement automatique"
+  },
+  "convertMenuTitle": {
+    "message": "Convertir en message secret (Ctrl+Maj+E)"
+  },
+  "convertCommandDesc": {
+    "message": "Convertir le texte du champ de saisie en message secret"
   }
 }
