@@ -147,13 +147,45 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }
 });
 
+// A match pattern of MESSENGER_PAGES ("https://*.vk.com/*") as a regular expression.
+const patternToRegExp = (pattern) => {
+    const [, scheme, host, path] = pattern.match(/^(\w+):\/\/([^/]+)(\/.*)$/);
+    const escape = (text) => text.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    // "*.example.com" is example.com and its subdomains.
+    const hostPattern = host.startsWith("*.") ? `([^/]+\\.)?${escape(host.slice(2))}` : escape(host);
+    return new RegExp(`^${scheme}://${hostPattern}${escape(path).replace(/\*/g, ".*")}$`);
+};
+const MESSENGER_PAGE_PATTERNS = MESSENGER_PAGES.map(patternToRegExp);
+
+// Which libraries the page has; with waitForLoad, once the page has loaded, so content scripts are there if they come.
+async function loadedScripts(target, waitForLoad) {
+    const [{result}] = await chrome.scripting.executeScript({
+        target,
+        args: [waitForLoad],
+        func: async (wait) => {
+            if (wait && document.readyState !== "complete") {
+                await new Promise((resolve) => {
+                    window.addEventListener("load", resolve, {once: true});
+                    setTimeout(resolve, 5000);
+                });
+            }
+            // Content scripts at document_idle run at the latest right after the load event.
+            if (wait) await new Promise((resolve) => setTimeout(resolve, 100));
+            return {core: Boolean(window.SecretMessageSettingsStore), widget: Boolean(window.SecretMessageWidget)};
+        }
+    });
+    return result;
+}
+
 async function callWidget(tab, func) {
     const target = {tabId: tab.id};
-    // The libraries declare top-level classes and constants, so they can be injected only once per page.
-    const [{result: loaded}] = await chrome.scripting.executeScript({
-        target,
-        func: () => ({core: Boolean(window.SecretMessageSettingsStore), widget: Boolean(window.SecretMessageWidget)})
-    });
+    // The libraries declare top-level classes and constants, so they can be injected only once per page. The content
+    // scripts of MESSENGER_PAGES bring the core when the page has loaded; injecting it before that would declare it
+    // twice. Tabs opened before the extension was installed or reloaded never get the content scripts.
+    let loaded = await loadedScripts(target, false);
+    if (!loaded.core && MESSENGER_PAGE_PATTERNS.some((pattern) => pattern.test(tab.url))) {
+        loaded = await loadedScripts(target, true);
+    }
     if (!loaded.core) {
         await chrome.scripting.executeScript({target, files: CORE_SCRIPTS});
     }
