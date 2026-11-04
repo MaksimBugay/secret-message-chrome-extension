@@ -1,0 +1,388 @@
+<!doctype html>
+<!-- Promo video scenes: render(t) draws the frame at t seconds; `node render.mjs` captures and encodes them into ../secret-message-promo.mp4. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Secret Message promo</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1280px; height: 720px; overflow: hidden; background: #0d1420; }
+    body { font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #050505; }
+    #stage { position: relative; width: 1280px; height: 720px; overflow: hidden; }
+    .layer { position: absolute; inset: 0; }
+    .logo svg { display: block; width: 100%; height: 100%; }
+
+    /*---------------------------------------- intro / outro ----------------------------------------*/
+    .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #e8eef7;
+        background: radial-gradient(circle at 30% 20%, #3473ce55, transparent 55%), radial-gradient(circle at 75% 80%, #7c4dff66, transparent 55%), #0d1420; }
+    .hero .logo { width: 120px; height: 120px; filter: drop-shadow(0 12px 40px #7c4dff88); }
+    .hero h1 { font-size: 64px; font-weight: 800; letter-spacing: -1px; }
+    .hero p { font-size: 26px; color: #b9c7da; }
+    .hero .sites { margin-top: 10px; font-size: 18px; color: #93a4bb; letter-spacing: .5px; }
+    .hero ul { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 12px; font-size: 24px; color: #dbe5f3; }
+    .hero li span { display: inline-block; width: 40px; }
+
+    /*---------------------------------------- browser ----------------------------------------*/
+    #browser { background: #f0f2f5; }
+    .tabbar { height: 38px; background: #dfe3e8; display: flex; align-items: flex-end; padding-left: 84px; position: relative; }
+    .tabbar .lights { position: absolute; left: 16px; top: 13px; display: flex; gap: 8px; }
+    .tabbar .lights i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+    .tabbar .lights i:nth-child(2) { background: #febc2e; } .tabbar .lights i:nth-child(3) { background: #28c840; }
+    .tab { width: 260px; height: 31px; background: #fff; border-radius: 9px 9px 0 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 13px; color: #3c4043; }
+    .tab .fav { width: 16px; height: 16px; border-radius: 50%; background: #1877f2; }
+    .toolbar { height: 44px; background: #fff; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid #dadce0; }
+    .tb-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: #5f6368; position: relative; }
+    .tb-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .omnibox { flex: 1; height: 34px; border-radius: 17px; background: #f1f3f4; display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 14px; color: #202124; }
+    .omnibox .host { color: #5f6368; }
+    #pinned { transform-origin: center; }
+    #pinned .logo { width: 22px; height: 22px; }
+    #badge { position: absolute; right: -4px; bottom: 0; background: #7c4dff; color: #fff; font: 700 9px/1 -apple-system, sans-serif; padding: 2px 3px; border-radius: 3px; }
+    .profile { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ef4444); margin-left: 4px; }
+
+    #viewport { position: absolute; top: 82px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+    #page { position: absolute; left: 0; right: 0; top: 0; }
+    .fbnav { height: 52px; background: #fff; box-shadow: 0 1px 2px #0002; display: flex; align-items: center; padding: 0 20px; gap: 14px; }
+    .fbnav .mark { width: 36px; height: 36px; border-radius: 50%; background: #1877f2; }
+    .fbnav .search { width: 240px; height: 36px; border-radius: 18px; background: #f0f2f5; color: #65676b; display: flex; align-items: center; padding: 0 14px; font-size: 14px; }
+    .fbnav .tabs { flex: 1; display: flex; justify-content: center; align-items: stretch; gap: 70px; height: 52px; color: #65676b; font-weight: 600; }
+    .fbnav .tabs > * { display: flex; align-items: center; padding: 0 4px; border-bottom: 3px solid transparent; }
+    .fbnav .tabs b { color: #1877f2; border-bottom-color: #1877f2; }
+    .column { width: 680px; margin: 12px auto 0; display: flex; flex-direction: column; gap: 12px; }
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 2px #0002; }
+    .group { display: flex; align-items: center; gap: 14px; padding: 12px 16px; }
+    .group .cover { width: 72px; height: 52px; border-radius: 8px; background: linear-gradient(135deg, #0ea5e9, #22c55e); }
+    .group h2 { font-size: 20px; }
+    .group small { color: #65676b; font-size: 13px; }
+    .post-head { display: flex; gap: 10px; align-items: center; padding: 12px 16px 6px; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+    .post-head b { display: block; font-size: 15px; }
+    .post-head small { color: #65676b; font-size: 13px; }
+    .caption { padding: 4px 16px 10px; font-size: 15px; }
+    .photo { height: 120px; background: linear-gradient(180deg, #fb923c 0%, #f472b6 45%, #6366f1 100%); position: relative; overflow: hidden; }
+    .photo::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 38px; background: linear-gradient(180deg, #1e293b88, #0f172a); }
+    .photo .sun { position: absolute; left: 50%; top: 52px; width: 70px; height: 70px; margin-left: -35px; border-radius: 50%; background: #fde68a; box-shadow: 0 0 40px #fde68a; }
+    .actions { display: flex; justify-content: space-around; padding: 6px 16px; color: #65676b; font-weight: 600; font-size: 14px; border-bottom: 1px solid #e4e6eb; margin: 0 16px; }
+    .comments { padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .comment { display: flex; gap: 8px; align-items: flex-start; }
+    .comment .avatar { width: 32px; height: 32px; }
+    .bubble { background: #f0f2f5; border-radius: 18px; padding: 8px 12px; max-width: 560px; font-size: 15px; }
+    .bubble b { display: block; font-size: 13px; }
+    #posted { overflow: hidden; }
+    .decoded { color: #8b5cf6; font-style: italic; text-shadow: 0 0 6px rgba(139, 92, 246, .45); margin-left: .35em; }
+    .decoded svg { width: 1.15em; height: 1.15em; vertical-align: -.2em; margin-right: .25em; filter: drop-shadow(0 0 2px rgba(139, 92, 246, .6)); }
+    .composer { display: flex; gap: 8px; align-items: center; }
+    .composer .avatar { width: 32px; height: 32px; }
+    #box { flex: 1; min-height: 38px; border-radius: 19px; background: #f0f2f5; padding: 9px 14px; font-size: 15px; color: #050505; }
+    #box.empty { color: #65676b; }
+    #box.focused { box-shadow: 0 0 0 2px #1877f255; }
+    #caret { display: inline-block; width: 1.5px; height: 18px; background: #050505; vertical-align: -3px; margin-left: 1px; }
+
+    /*---------------------------------------- Chrome extensions menu ----------------------------------------*/
+    #extmenu { position: absolute; top: 76px; right: 52px; width: 330px; background: #fff; border-radius: 10px; box-shadow: 0 6px 24px #0004, 0 0 0 1px #0001; padding: 12px 0; transform-origin: top right; }
+    #extmenu h3 { font-size: 16px; font-weight: 600; padding: 0 16px 6px; color: #202124; }
+    #extmenu p { font-size: 12px; color: #5f6368; padding: 0 16px 8px; }
+    .ext-row { display: flex; align-items: center; gap: 12px; padding: 9px 16px; font-size: 14px; color: #202124; }
+    .ext-row .logo { width: 20px; height: 20px; }
+    .ext-row .name { flex: 1; }
+    .ext-row .pin { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #5f6368; }
+    .ext-row .pin svg { width: 18px; height: 18px; }
+    .ext-row.hl { background: #e8f0fe; }
+    .menu-foot { border-top: 1px solid #e8eaed; margin-top: 6px; padding: 10px 16px 0; font-size: 14px; color: #3c4043; }
+
+    /*---------------------------------------- the extension's widget and toast ----------------------------------------*/
+    #widget { position: absolute; top: 94px; right: 16px; width: 380px; background: #0d1420; border: 1px solid #3a4f70; border-radius: 14px; color: #e8eef7;
+        box-shadow: 0 18px 48px rgba(3, 8, 18, .55); font-size: 13px; overflow: hidden; }
+    .w-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: linear-gradient(135deg, #16213a, #1d1a3f); border-bottom: 1px solid #26364f; }
+    .w-head .logo { width: 30px; height: 30px; }
+    .w-head strong { display: block; font-size: 14px; } .w-head span { color: #93a4bb; font-size: 11px; }
+    .w-head .x { margin-left: auto; color: #93a4bb; font-size: 18px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; }
+    .w-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .w-title { display: flex; justify-content: space-between; align-items: center; }
+    .w-title h4 { font-size: 14px; }
+    .w-save { padding: 5px 10px; border-radius: 8px; background: #3473ce; color: #fff; font-weight: 600; font-size: 12px; }
+    .w-sub { display: flex; gap: 6px; } .w-sub span { padding: 5px 10px; border-radius: 8px; background: #131d2e; color: #93a4bb; }
+    .w-sub span.on { background: #26364f; color: #e8eef7; }
+    .w-label { color: #93a4bb; font-size: 12px; margin-top: 4px; }
+    .w-field { height: 34px; border-radius: 9px; background: #0a111c; border: 1px solid #26364f; padding: 0 10px; display: flex; align-items: center; font-size: 13px; letter-spacing: .3px; }
+    .w-field.focus { border-color: #3473ce; box-shadow: 0 0 0 3px #3473ce44; }
+    .w-status { color: #8fd6b5; font-size: 12px; min-height: 16px; }
+    #toast { position: absolute; display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; background: #0d1420; border: 1px solid #3a4f70; border-radius: 12px;
+        box-shadow: 0 10px 28px rgba(3, 8, 18, .5); color: #e8eef7; font-size: 14px; white-space: nowrap; }
+    #toast .logo { width: 26px; height: 26px; }
+    .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #7c4dff44; border-top-color: #a78bfa; }
+
+    /*---------------------------------------- overlays ----------------------------------------*/
+    #caption { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 12px 22px 12px 12px;
+        background: rgba(13, 20, 32, .92); border: 1px solid #3a4f70; border-radius: 16px; color: #fff; font-size: 21px; font-weight: 600; white-space: nowrap;
+        box-shadow: 0 12px 34px #0006; }
+    #caption .num { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #3473ce, #7c4dff); font-size: 18px; }
+    #keys { position: absolute; left: 50%; top: 300px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 18px 26px; border-radius: 18px;
+        background: rgba(13, 20, 32, .9); box-shadow: 0 16px 40px #0007; color: #fff; font-size: 26px; font-weight: 700; }
+    #keys kbd { font: inherit; min-width: 64px; padding: 10px 16px; text-align: center; border-radius: 12px; background: linear-gradient(#2a3a55, #1a2639); border: 1px solid #4a628a;
+        box-shadow: 0 5px 0 #0a111c; }
+    #keys kbd.down { transform: translateY(4px); box-shadow: 0 1px 0 #0a111c; background: linear-gradient(#3b5bd6, #7c4dff); }
+    #keys small { display: block; }
+    #cursor { position: absolute; left: 0; top: 0; width: 26px; height: 32px; pointer-events: none; filter: drop-shadow(0 2px 3px #0006); }
+    #ripple { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 3px solid #7c4dff; }
+    #ring { position: absolute; border-radius: 50%; border: 3px solid #7c4dff; }
+</style>
+</head>
+<body>
+<div id="stage">
+    <div id="intro" class="layer hero">
+        <div class="logo"></div>
+        <h1>Secret Message</h1>
+        <p>Hide a private message inside an ordinary comment</p>
+        <div class="sites">Chrome extension · Facebook · VK · LinkedIn · Telegram Web</div>
+    </div>
+
+    <div id="browser" class="layer">
+        <div class="tabbar"><div class="lights"><i></i><i></i><i></i></div><div class="tab"><span class="fav"></span>Weekend Hikers Club | Facebook</div></div>
+        <div class="toolbar">
+            <div class="tb-icon"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+            <div class="tb-icon"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+            <div class="tb-icon"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></div>
+            <div class="omnibox"><span>🔒</span><span>facebook.com<span class="host">/groups/weekend.hikers.club</span></span></div>
+            <div class="tb-icon" id="pinned"><div class="logo"></div><span id="badge">ON</span></div>
+            <div class="tb-icon" id="puzzle"><svg viewBox="0 0 24 24"><path d="M10 4a2 2 0 1 1 4 0v2h4v4h-2a2 2 0 1 0 0 4h2v4h-4v-2a2 2 0 1 0-4 0v2H6v-4H4a2 2 0 1 1 0-4h2V6h4z"/></svg></div>
+            <div class="profile"></div>
+        </div>
+        <div id="viewport"><div id="page">
+            <div class="fbnav"><div class="mark"></div><div class="search">Search</div><div class="tabs"><span>Home</span><span>Video</span><b>Groups</b><span>Gaming</span></div></div>
+            <div class="column">
+                <div class="card group"><div class="cover"></div><div><h2>Weekend Hikers Club</h2><small>🌍 Public group · 12.4K members</small></div></div>
+                <div class="card" id="post">
+                    <div class="post-head"><div class="avatar" style="background: linear-gradient(135deg, #ec4899, #8b5cf6)"></div><div><b>Captain Jack</b><small>2h · 🌍</small></div></div>
+                    <div class="caption">Sunset at Lake Ridge yesterday 🌅 Who's joining the trail next Saturday?</div>
+                    <div class="photo"><div class="sun"></div></div>
+                    <div class="actions"><span>👍 Like</span><span>💬 Comment</span><span>↗ Share</span></div>
+                    <div class="comments">
+                        <div class="comment"><div class="avatar" style="background: linear-gradient(135deg, #10b981, #0ea5e9)"></div><div class="bubble"><b>Mark Ellis</b>Count me in! What time do we start?</div></div>
+                        <div id="posted"><div class="comment"><div class="avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444)"></div><div class="bubble"><b>Max</b><span id="postedText"></span><span id="decoded" class="decoded"></span></div></div></div>
+                        <div class="composer"><div class="avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444)"></div><div id="box"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div></div>
+
+        <div id="extmenu">
+            <h3>Extensions</h3>
+            <p>Full access · These extensions can see and change information on this site.</p>
+            <div class="ext-row" id="extrow"><div class="logo"></div><span class="name">Secret Message – Encrypted Chat Phrases</span>
+                <span class="pin" id="pin"><svg viewBox="0 0 24 24"><path id="pinpath" d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span></div>
+            <div class="menu-foot">⚙ Manage extensions</div>
+        </div>
+
+        <div id="widget">
+            <div class="w-head"><div class="logo"></div><div><strong>Secret Message</strong><span>Public phrase, private message</span></div><div class="x" id="wclose">✕</div></div>
+            <div class="w-body">
+                <div class="w-title"><h4>Obfuscation settings</h4><span class="w-save" id="wsave">Save</span></div>
+                <div class="w-sub"><span>Conversation details</span><span class="on">Encryption</span></div>
+                <div class="w-label">Workspace</div><div class="w-field">our-hiking-crew</div>
+                <div class="w-label">Password</div><div class="w-field" id="wpass"></div>
+                <div class="w-label">Owner signature <span style="opacity:.7">· optional</span></div><div class="w-field" style="color:#5b6b82">Your shared signature</div>
+                <div class="w-status" id="wstatus"></div>
+            </div>
+        </div>
+
+        <div id="toast"><span class="logo"></span><span class="spinner" id="spin"></span><span id="toastText"></span></div>
+    </div>
+
+    <div id="outro" class="layer hero">
+        <div class="logo"></div>
+        <h1>Public phrase, private message</h1>
+        <ul>
+            <li><span>🔒</span>Encrypted right in your browser</li>
+            <li><span>👤</span>No registration, no account</li>
+            <li><span>⌨️</span>Ctrl+Shift+E to convert · Ctrl+Shift+L to decode</li>
+        </ul>
+        <div class="sites">Facebook · VK · LinkedIn · Telegram Web</div>
+    </div>
+
+    <div id="keys"></div>
+    <div id="ring"></div>
+    <div id="ripple"></div>
+    <div id="caption"><span class="num"></span><span class="text"></span></div>
+    <svg id="cursor" viewBox="0 0 26 32"><path d="M2 2v24l6.5-6 4.5 10 4-1.8-4.4-9.8H22z" fill="#fff" stroke="#111" stroke-width="1.8" stroke-linejoin="round"/></svg>
+</div>
+
+<script>
+const LOGO = '%LOGO%';
+document.querySelectorAll('.logo').forEach((element, index) => {
+    // Gradient ids must be unique in the document.
+    element.innerHTML = LOGO.replaceAll('smwBg', `smwBg${index}`);
+});
+const EYE = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" fill="rgba(139,92,246,.14)" stroke="#7c3aed" stroke-width="1.8"/>' +
+    '<circle cx="12" cy="12" r="3.6" fill="#8b5cf6"/><circle cx="12" cy="12" r="1.5" fill="#2e1065"/><circle cx="13.3" cy="10.7" r=".8" fill="#fff"/>' +
+    '<path d="M20 .8l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z" fill="#f5b700"/></svg>';
+
+const PRIVATE = "Can't talk here — meet me at 7 by the old bridge";
+const PHRASE = "Beautiful shot! Saturday works for me — I'll bring the thermos ☕";
+const PASSWORD_DOTS = '••••••••••';
+
+const CAPTIONS = [
+    [4.8, 12.8, '1', 'After installing, open Extensions and pin Secret Message'],
+    [13, 19.4, '2', 'Click the icon, enter the workspace and password you share with a friend'],
+    [19.6, 23.9, '3', 'Comment on any public post: type your private message…'],
+    [24, 28, '3', '…press Ctrl+Shift+E (or right-click → Convert into secret message)'],
+    [28.1, 32.8, '3', 'Post it: everyone else sees just a friendly comment'],
+    [33, 35.6, '4', 'Your friend turns on auto-decoding with Ctrl+Shift+L…'],
+    [35.7, 41.8, '4', '…and hovers over the comment to read the private message']
+];
+
+// Cursor targets: [time, selector or [x, y]]; it eases between them.
+const CURSOR = [
+    [4.5, [760, 470]], [5.4, [760, 470]], [6.4, '#puzzle'], [7.1, '#puzzle'], [8.1, '#pin'], [8.9, '#pin'], [9.6, [900, 300]],
+    [12.9, [900, 300]], [13.8, '#pinned'], [14.3, '#pinned'], [15.1, '#wpass'], [16.9, '#wpass'], [17.5, '#wsave'], [18.4, '#wsave'], [19.0, '#wclose'],
+    [19.4, '#wclose'], [20.3, '#box'], [23.9, '#box'], [24.6, [1040, 560]], [33.6, [1040, 560]], [35.0, '#postedText'], [42, '#postedText']
+];
+const CLICKS = [6.5, 8.4, 9.7, 13.9, 15.2, 17.6, 19.1, 20.4];
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const progress = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => (x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+// 0 → 1 between a and b, back to 0 between c and d.
+const window_ = (t, a, b, c, d) => Math.min(progress(t, a, b), 1 - progress(t, c, d));
+const $ = (selector) => document.querySelector(selector);
+
+function centerOf(target) {
+    if (Array.isArray(target)) return {x: target[0], y: target[1]};
+    const rect = $(target).getBoundingClientRect();
+    return {x: rect.left + Math.min(rect.width / 2, 60), y: rect.top + rect.height / 2};
+}
+
+function cursorAt(t) {
+    let index = CURSOR.findIndex(([time]) => time > t);
+    if (index === -1) index = CURSOR.length;
+    if (index === 0) return centerOf(CURSOR[0][1]);
+    const [t0, a] = CURSOR[index - 1];
+    if (index === CURSOR.length) return centerOf(a);
+    const [t1, b] = CURSOR[index];
+    const from = centerOf(a), to = centerOf(b);
+    const k = ease(progress(t, t0, t1));
+    return {x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k};
+}
+
+// Deterministic "encryption" scramble between two texts.
+function scramble(from, to, k) {
+    const glyphs = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz0123456789#$%&*+=?@';
+    const length = Math.round(from.length + (to.length - from.length) * k);
+    let out = '';
+    for (let i = 0; i < length; i++) {
+        const settle = i / length;
+        if (k > .35 + settle * .6) out += to[i] ?? '';
+        else out += glyphs[(i * 7 + Math.floor(k * 40) * 13) % glyphs.length];
+    }
+    return out;
+}
+
+function keys(t, start, end, labels, pressAt) {
+    const el = $('#keys');
+    const k = window_(t, start, start + .25, end - .25, end);
+    el.style.opacity = k;
+    el.style.transform = `translateX(-50%) scale(${.92 + .08 * k})`;
+    if (k > 0) el.innerHTML = labels.map((label) => `<kbd class="${t >= pressAt && t < pressAt + .5 ? 'down' : ''}">${label}</kbd>`).join('<span>+</span>');
+}
+
+function render(t) {
+    // Scenes.
+    $('#intro').style.opacity = 1 - progress(t, 4, 4.6);
+    $('#browser').style.opacity = window_(t, 4, 4.6, 42, 42.6);
+    $('#outro').style.opacity = progress(t, 42, 42.6);
+
+    // Pinning.
+    const menu = window_(t, 6.6, 6.8, 9.7, 9.85);
+    $('#extmenu').style.opacity = menu;
+    $('#extmenu').style.transform = `scale(${.95 + .05 * menu})`;
+    $('#extrow').classList.toggle('hl', t > 7.8 && t < 9.7);
+    const pinned = t >= 8.45;
+    $('#pinpath').setAttribute('fill', pinned ? '#1a73e8' : 'none');
+    $('#pin').style.color = pinned ? '#1a73e8' : '#5f6368';
+    const pop = progress(t, 8.5, 8.8);
+    $('#pinned').style.display = pop > 0 ? 'grid' : 'none';
+    $('#pinned').style.transform = `scale(${pop < 1 ? .3 + 1.0 * ease(pop) : 1})`;
+    const ring = window_(t, 9.9, 10.2, 12.3, 12.7);
+    const pinnedRect = $('#pinned').getBoundingClientRect();
+    const ringSize = 44 + 10 * Math.sin((t - 9.9) * 6) ** 2;
+    Object.assign($('#ring').style, {opacity: ring, width: `${ringSize}px`, height: `${ringSize}px`,
+        left: `${pinnedRect.left + pinnedRect.width / 2 - ringSize / 2}px`, top: `${pinnedRect.top + pinnedRect.height / 2 - ringSize / 2}px`});
+
+    // Settings.
+    const widget = window_(t, 14.0, 14.25, 19.15, 19.35);
+    $('#widget').style.opacity = widget;
+    $('#widget').style.transform = `translateY(${(1 - widget) * 10}px)`;
+    $('#wpass').classList.toggle('focus', t > 15.2 && t < 17.5);
+    $('#wpass').textContent = PASSWORD_DOTS.slice(0, Math.round(progress(t, 15.4, 16.6) * PASSWORD_DOTS.length));
+    $('#wstatus').textContent = t > 17.7 ? '✓ Obfuscation settings saved securely for www.facebook.com.' : '';
+
+    // Comment box: type, convert, post.
+    const box = $('#box');
+    const typed = PRIVATE.slice(0, Math.round(progress(t, 20.7, 23.7) * PRIVATE.length));
+    let text = typed;
+    if (t >= 25.8) text = scramble(PRIVATE, PHRASE, progress(t, 25.8, 26.6));
+    if (t >= 28.25) text = '';
+    const focused = t > 20.4 && t < 28.25;
+    box.classList.toggle('focused', focused);
+    box.classList.toggle('empty', !text);
+    const caret = focused && (Math.floor(t * 2.2) % 2 === 0 || (t > 20.7 && t < 23.7)) ? '<span id="caret"></span>' : '';
+    box.innerHTML = (text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;') : (focused ? '' : 'Write a public comment…')) + caret;
+
+    // Posted comment and its decoded private message.
+    const posted = $('#posted');
+    $('#postedText').textContent = PHRASE;
+    const decoded = progress(t, 36.4, 36.9);
+    const decodedEl = $('#decoded');
+    decodedEl.innerHTML = decoded > 0 ? EYE + PRIVATE : '';
+    decodedEl.style.opacity = decoded;
+    posted.style.height = 'auto';
+    const full = posted.scrollHeight;
+    posted.style.height = `${full * ease(progress(t, 28.25, 28.6))}px`;
+    posted.style.opacity = progress(t, 28.25, 28.5);
+    // Keep the comments in view as they grow.
+    $('#page').style.transform = `translateY(${-ease(progress(t, 28.3, 28.9)) * 70 - ease(progress(t, 36.4, 36.9)) * 30}px)`;
+
+    // Toast above the comment box.
+    const toast = $('#toast');
+    const toastOn = window_(t, 24.45, 24.65, 27.6, 27.9);
+    toast.style.opacity = toastOn;
+    $('#spin').style.display = t < 25.8 ? 'block' : 'none';
+    $('#spin').style.transform = `rotate(${t * 720}deg)`;
+    $('#toastText').textContent = t < 25.8 ? 'Encrypting your message…' : 'Replaced with the public phrase. Post caption added to history.';
+    const boxRect = box.getBoundingClientRect();
+    toast.style.left = `${boxRect.left}px`;
+    toast.style.top = `${boxRect.top - 52}px`;
+
+    // Hot keys.
+    $('#keys').style.opacity = 0;
+    if (t > 23.9 && t < 25.8) keys(t, 24.0, 25.7, ['Ctrl', 'Shift', 'E'], 24.35);
+    else if (t > 27.6 && t < 28.9) keys(t, 27.7, 28.8, ['Enter'], 28.15);
+    else if (t > 33 && t < 35) keys(t, 33.1, 34.9, ['Ctrl', 'Shift', 'L'], 33.5);
+    $('#badge').style.display = t > 33.55 ? 'block' : 'none';
+
+    // Caption.
+    const caption = CAPTIONS.find(([a, b]) => t >= a && t < b);
+    const captionEl = $('#caption');
+    captionEl.style.opacity = caption ? window_(t, caption[0], caption[0] + .25, caption[1] - .25, caption[1]) : 0;
+    if (caption) {
+        captionEl.querySelector('.num').textContent = caption[2];
+        captionEl.querySelector('.text').textContent = caption[3];
+    }
+
+    // Cursor and clicks.
+    const cursor = cursorAt(t);
+    const cursorEl = $('#cursor');
+    cursorEl.style.opacity = window_(t, 4.5, 4.8, 41.6, 42);
+    cursorEl.style.transform = `translate(${cursor.x - 2}px, ${cursor.y - 2}px)`;
+    const click = CLICKS.find((at) => t >= at && t < at + .45);
+    const ripple = $('#ripple');
+    ripple.style.opacity = click === undefined ? 0 : 1 - progress(t, click, click + .45);
+    const scale = click === undefined ? 1 : .4 + progress(t, click, click + .45);
+    ripple.style.transform = `translate(${cursor.x}px, ${cursor.y}px) scale(${scale})`;
+}
+
+window.DURATION = 47;
+render(0);
+</script>
+</body>
+</html>
