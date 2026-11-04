@@ -103,10 +103,12 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 
 //-----------------------widget-----------------------------------------------------------------------------------------
 
-// The "?" button of the widget.
+// The help and privacy buttons of the widget.
+const DOCS = {help: "docs/help.html", privacy: "docs/privacy.html"};
+
 chrome.runtime.onMessage.addListener((message) => {
-    if (message?.type === "openHelp") {
-        chrome.tabs.create({url: chrome.runtime.getURL("docs/help.html")});
+    if (message?.type === "openDoc" && Object.hasOwn(DOCS, message.page)) {
+        chrome.tabs.create({url: chrome.runtime.getURL(DOCS[message.page])});
     }
 });
 
