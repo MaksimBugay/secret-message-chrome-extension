@@ -12,6 +12,12 @@
     "message": "Secret Message öffnen"
   },
   "menuTitle": {
-    "message": "Geheime Nachricht verschlüsseln (Strg+Umschalt+Y)"
+    "message": "Geheime Nachricht erstellen (Strg+Umschalt+Y)"
+  },
+  "autoDecodingMenuTitle": {
+    "message": "Geheime Nachrichten automatisch entschlüsseln (Strg+Umschalt+L)"
+  },
+  "autoDecodingCommandDesc": {
+    "message": "Automatisches Entschlüsseln ein- oder ausschalten"
   }
 }

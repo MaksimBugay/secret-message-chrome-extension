@@ -1,6 +1,7 @@
-// Content script for Facebook / Messenger / VK / Telegram Web (manifest.json): from page load, decodes secret messages
-// under the mouse pointer and replaces the public phrase with the original text. Pauses while the widget is shown;
-// texts that are not secret messages are remembered and never sent twice.
+// Content script for Facebook / Messenger / VK / Telegram Web (manifest.json): while auto decoding is turned on
+// (context menu / hot key, off by default), decodes secret messages under the mouse pointer and shows the private
+// message after the public phrase. Pauses while the widget is shown; texts the server says are not secret messages are
+// remembered and never sent twice.
 window.SecretMessageHoverDecoder = (function () {
     const HOVER_DELAY = 400;
     const MIN_LENGTH = 12;
@@ -9,8 +10,26 @@ window.SecretMessageHoverDecoder = (function () {
     const CACHE_LIMIT = 500;
     // At most one decode request per second; texts already checked are answered from the cache.
     const REQUEST_INTERVAL = 1000;
-    const DECODED_PREFIX = '🔓 ';
+    // Same key as AUTO_DECODING_KEY in background.js.
+    const AUTO_DECODING_KEY = 'autoDecoding';
+    // Marks the private message added to the page, so it is never read as part of a phrase.
+    const DECODED_ATTRIBUTE = 'data-secret-message-decoded';
+    const DECODED_STYLE = 'margin-left: 0.35em; color: #8b5cf6; font-style: italic; white-space: pre-wrap; ' +
+        'text-shadow: 0 0 6px rgba(139, 92, 246, 0.45);';
+    // Magic eye in front of the private message: drawn as SVG, so it looks the same with every emoji font, and built
+    // from DOM nodes, so no page CSP can block it.
+    const MAGIC_EYE_STYLE = 'width: 1.15em; height: 1.15em; margin-right: 0.25em; vertical-align: -0.2em; ' +
+        'filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.6));';
+    const MAGIC_EYE = [
+        ['path', {d: 'M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z', fill: 'rgba(139, 92, 246, 0.14)',
+            stroke: '#7c3aed', 'stroke-width': '1.8', 'stroke-linejoin': 'round'}],
+        ['circle', {cx: '12', cy: '12', r: '3.6', fill: '#8b5cf6'}],
+        ['circle', {cx: '12', cy: '12', r: '1.5', fill: '#2e1065'}],
+        ['circle', {cx: '13.3', cy: '10.7', r: '0.8', fill: '#fff'}],
+        ['path', {d: 'M20 .8l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z', fill: '#f5b700'}]
+    ];
 
+    let turnedOn = false;
     let paused = false;
     // Settings saved for this site, until the widget provides its own (possibly unsaved) ones.
     let saved = null;
@@ -22,7 +41,8 @@ window.SecretMessageHoverDecoder = (function () {
     let lastRequestAt = 0;
     // Phrase text -> decoded message, or null when it is not a secret message for the current credentials.
     const checked = new Map();
-    const decodedElements = new WeakSet();
+
+    const active = () => turnedOn && !paused;
 
     async function loadSaved() {
         try {
@@ -30,6 +50,22 @@ window.SecretMessageHoverDecoder = (function () {
         } catch (_) {
             saved = null;
         }
+    }
+
+    // Settings may have been saved in another tab in the meantime; they are only needed while auto decoding is on.
+    function reloadSavedIfOn() {
+        if (turnedOn) loadSaved();
+    }
+
+    function stop() {
+        clearTimeout(timer);
+        pendingPoint = null;
+    }
+
+    function setTurnedOn(value) {
+        turnedOn = value === true;
+        if (turnedOn) loadSaved();
+        else stop();
     }
 
     /** @returns {{workspaceId: string, password: string, ownerSignature: string}|null} */
@@ -87,15 +123,15 @@ window.SecretMessageHoverDecoder = (function () {
      */
     function contentOf(block, inlineOnly) {
         const parts = [];
-        const nodes = [];
-        const images = [];
+        // The last text or emoji of the phrase: the private message is shown right after it.
+        let last = null;
         function walkElement(element) {
             if (element.tagName === 'BR') {
                 parts.push('\n');
             } else if (element.tagName === 'IMG') {
                 if (element.alt) {
                     parts.push(element.alt);
-                    images.push(element);
+                    last = element;
                 }
             } else if (isInline(element)) {
                 walk(element);
@@ -110,8 +146,9 @@ window.SecretMessageHoverDecoder = (function () {
             for (const child of parent.childNodes) {
                 if (child.nodeType === Node.TEXT_NODE) {
                     parts.push(child.nodeValue);
-                    nodes.push(child);
-                } else if (child.nodeType === Node.ELEMENT_NODE && !child.matches('script, style, noscript')) {
+                    if (child.nodeValue.trim()) last = child;
+                } else if (child.nodeType === Node.ELEMENT_NODE &&
+                    !child.matches(`script, style, noscript, [${DECODED_ATTRIBUTE}]`)) {
                     walkElement(child);
                 }
             }
@@ -124,13 +161,14 @@ window.SecretMessageHoverDecoder = (function () {
             .replace(/ ?\n ?/g, '\n')
             .replace(/\n{2,}/g, '\n')
             .trim();
-        return {element: block, inlineOnly, nodes, images, text};
+        return {element: block, inlineOnly, last, text};
     }
 
     // The whole block first (a post paragraph, a chat bubble); then only its inline content.
     function candidatesAt(node) {
         const block = blockOf(node);
-        if (!block || decodedElements.has(block) || isExcluded(block)) {
+        // Already shown, unless the page re-rendered the block; then the cached message is shown again without a request.
+        if (!block || block.querySelector(`[${DECODED_ATTRIBUTE}]`) || isExcluded(block)) {
             return [];
         }
         const candidates = [contentOf(block, false)];
@@ -151,12 +189,16 @@ window.SecretMessageHoverDecoder = (function () {
             await new Promise((resolve) => setTimeout(resolve, wait));
         }
         lastRequestAt = Date.now();
-        let message = null;
+        let message;
         try {
             message = await secreteMessagePublicPhraseToText(text, current.password, current.workspaceId,
                 current.ownerSignature || null);
-        } catch (_) {
-            // Not a secret message for these credentials.
+        } catch (error) {
+            // Offline, rate limited or a server error: not an answer, so the text is checked again on the next hover.
+            if (error instanceof TypeError || /\(HTTP (429|5\d\d)\)/.test(error.message)) {
+                return null;
+            }
+            message = null; // Not a secret message for these credentials.
         }
         if (checked.size >= CACHE_LIMIT) {
             checked.delete(checked.keys().next().value);
@@ -165,20 +207,28 @@ window.SecretMessageHoverDecoder = (function () {
         return message;
     }
 
-    // Text node values change and emoji images are hidden, so pages rendered by React keep their DOM structure.
-    function replaceText(candidate, message) {
-        const [first, ...rest] = candidate.nodes;
-        const target = first ?? candidate.images[0].parentNode.insertBefore(document.createTextNode(''), candidate.images[0]);
-        target.nodeValue = DECODED_PREFIX + message;
-        rest.forEach((node) => { node.nodeValue = ''; });
-        candidate.images.forEach((image) => { image.style.display = 'none'; });
-        const element = candidate.element;
-        element.dataset.secretMessageDecoded = 'true';
-        element.title = 'Decoded by Secret Message';
-        element.style.whiteSpace = 'pre-wrap';
-        element.style.backgroundColor = 'rgba(124, 77, 255, 0.12)';
-        element.style.borderRadius = '6px';
-        decodedElements.add(element);
+    function magicEye() {
+        const svgNs = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNs, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.style.cssText = MAGIC_EYE_STYLE;
+        for (const [tag, attributes] of MAGIC_EYE) {
+            const shape = document.createElementNS(svgNs, tag);
+            Object.entries(attributes).forEach(([name, value]) => shape.setAttribute(name, value));
+            svg.append(shape);
+        }
+        return svg;
+    }
+
+    // The public phrase stays untouched; the private message follows it in a mystic violet.
+    function showMessage(candidate, message) {
+        const span = document.createElement('span');
+        span.setAttribute(DECODED_ATTRIBUTE, '');
+        span.title = 'Decoded by Secret Message';
+        span.style.cssText = DECODED_STYLE;
+        span.append(magicEye(), message);
+        candidate.last.after(span);
     }
 
     async function processPoint({x, y}) {
@@ -193,9 +243,9 @@ window.SecretMessageHoverDecoder = (function () {
                 continue;
             }
             // The widget may have been opened, or the page may have re-rendered the element, during the request.
-            if (!paused && candidate.element.isConnected &&
+            if (active() && candidate.element.isConnected &&
                 contentOf(candidate.element, candidate.inlineOnly).text === candidate.text) {
-                replaceText(candidate, message);
+                showMessage(candidate, message);
             }
             return;
         }
@@ -208,7 +258,7 @@ window.SecretMessageHoverDecoder = (function () {
         }
         running = true;
         try {
-            while (pendingPoint && !paused) {
+            while (pendingPoint && active()) {
                 const next = pendingPoint;
                 pendingPoint = null;
                 await processPoint(next);
@@ -218,12 +268,14 @@ window.SecretMessageHoverDecoder = (function () {
         }
     }
 
-    loadSaved();
-    // Settings may have been saved in another tab in the meantime.
-    window.addEventListener('focus', loadSaved);
+    window.addEventListener('focus', reloadSavedIfOn);
+    chrome.storage.local.get(AUTO_DECODING_KEY).then((stored) => setTurnedOn(stored[AUTO_DECODING_KEY]), () => undefined);
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && AUTO_DECODING_KEY in changes) setTurnedOn(changes[AUTO_DECODING_KEY].newValue);
+    });
 
     document.addEventListener('mousemove', (event) => {
-        if (paused) return;
+        if (!active()) return;
         clearTimeout(timer);
         timer = setTimeout(() => schedule({x: event.clientX, y: event.clientY}), HOVER_DELAY);
     }, {capture: true, passive: true});
@@ -232,15 +284,12 @@ window.SecretMessageHoverDecoder = (function () {
         // Called by the widget: from then on its current fields are used instead of the saved settings.
         setCredentials(provider) {
             credentials = provider;
-            window.removeEventListener('focus', loadSaved);
+            window.removeEventListener('focus', reloadSavedIfOn);
         },
         // Paused while the widget is shown (expanded or collapsed), so it does not change text the user is working with.
         setPaused(value) {
             paused = value;
-            if (paused) {
-                clearTimeout(timer);
-                pendingPoint = null;
-            }
+            if (paused) stop();
         }
     });
 })();

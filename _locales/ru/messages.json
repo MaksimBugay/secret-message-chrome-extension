@@ -12,6 +12,12 @@
     "message": "Открыть Secret Message"
   },
   "menuTitle": {
-    "message": "Зашифровать секретное сообщение (Ctrl+Shift+Y)"
+    "message": "Создать секретное сообщение (Ctrl+Shift+Y)"
+  },
+  "autoDecodingMenuTitle": {
+    "message": "Автоматически расшифровывать сообщения (Ctrl+Shift+L)"
+  },
+  "autoDecodingCommandDesc": {
+    "message": "Включить или выключить автоматическую расшифровку"
   }
 }

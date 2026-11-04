@@ -3,7 +3,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 [Secure FileShare Secret Message](https://secure.fileshare.ovh/secret-message.html).
 
 ## How it works
-- **Extension icon / `Ctrl+Shift+Y`** (`MacCtrl+Shift+Y` on macOS) or the single **context menu** item injects
+- **Extension icon / `Ctrl+Shift+Y`** (`MacCtrl+Shift+Y` on macOS) or the **Create a secret message** context menu item injects
   the Secret Message widget into the current page (no popup, nothing runs until you click).
 - The widget is **movable** (drag the header) and **collapsible** to a small pill; position and state are remembered.
 - Two icon tabs: **Derivation** (wand – the message to encode) and **Settings** (gear). Under the *Obfuscation
@@ -15,12 +15,14 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   - the topic is set to `FB post` (facebook.com), `VK post` (vk.com / vk.ru) or `Web chat` (any other site);
   - type the private message and press **Encode message** – the public phrase is copied to the clipboard.
     If the clipboard is not available, the phrase is shown in the widget instead.
-- **Decode on hover:** on Facebook, Messenger, VK and Telegram Web it is on from page load (manifest content
-  script, no click needed) and uses the obfuscation settings saved with the widget's *Save* button. It is paused while
-  the widget is shown (expanded or collapsed) and resumes when the widget is closed; it does not run on other sites.
-  Hovering over a text for 0.4 s tries to decode it (at most one request per second). Emoji drawn as images are read
-  as their `alt` text. A secret message is replaced in place with `🔓 <original text>` and highlighted; anything else
-  is left untouched. Each text is checked once per credentials.
+- **Auto decoding** (Facebook, Messenger, VK, Telegram Web) is **off by default**. Turn it on or off with the
+  context menu item *Auto-decode secret messages* or `Ctrl+Shift+L` (`MacCtrl+Shift+L`); the setting applies to all
+  tabs and the toolbar icon shows an **ON** badge while it is on. It uses the obfuscation settings saved with the
+  widget's *Save* button and is paused while the widget is shown (expanded or collapsed).
+  Hovering over a text for 0.4 s tries to decode it (at most one request per second); emoji drawn as images are read
+  as their `alt` text. The public phrase is left untouched and the private message is shown right after it, in italic
+  violet, after a magic-eye icon. A text the server reports as not secret is checked only once per credentials;
+  failed requests (offline, rate limit, server error) are retried on the next hover.
 - Obfuscation settings (workspace, password, owner signature, topic/style/language) are saved per site
   (e.g. www.facebook.com, vk.com, web.telegram.org) in that site's IndexedDB, in the same encrypted format the
   Secret Message page uses. They survive reinstalling the extension and are removed when the site's data is cleared.
@@ -33,9 +35,9 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | File | Purpose |
 |------|---------|
 | `manifest.json` | MV3 manifest, `_execute_action` hot key, `activeTab`, content scripts for Facebook / VK / Telegram |
-| `background.js` | Icon / hot key / menu handlers, one-time script injection |
+| `background.js` | Icon / hot key / menu handlers, one-time script injection, auto decoding on / off |
 | `js/secret-message-widget.js`, `css/secret-message-widget.css` | The widget (shadow DOM) |
-| `js/hover-decoder.js` | Content script for Facebook / VK / Telegram: decodes the text under the mouse pointer with the saved settings and replaces it in place |
+| `js/hover-decoder.js` | Content script for Facebook / VK / Telegram: auto decoding – shows the private message after the phrase under the mouse pointer |
 | `js/lib/secret-message.js` | Encode / decode (copy of the site's script) |
 | `js/lib/security-utils.js` | AES-GCM / PBKDF2 / SHA-256 helpers (copy of the site's script) |
 | `js/lib/secret-message-settings.js` | Encrypted settings store in the page site's IndexedDB (copy of the site's script) |
@@ -50,6 +52,6 @@ the site changes.
 
 ## Development
 Open `chrome://extensions`, enable *Developer mode*, *Load unpacked* and select this folder.
-The hot key can be changed in `chrome://extensions/shortcuts`.
+Both hot keys can be changed in `chrome://extensions/shortcuts`.
 
 To package: `zip -r secret-message.zip manifest.json background.js js css images _locales LICENSE`

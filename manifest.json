@@ -45,6 +45,13 @@
         "mac": "MacCtrl+Shift+Y"
       },
       "description": "__MSG_commandDesc__"
+    },
+    "toggle-auto-decoding": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "MacCtrl+Shift+L"
+      },
+      "description": "__MSG_autoDecodingCommandDesc__"
     }
   },
   "action": {

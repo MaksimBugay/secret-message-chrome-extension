@@ -12,6 +12,12 @@
     "message": "Ouvrir Secret Message"
   },
   "menuTitle": {
-    "message": "Chiffrer un message secret (Ctrl+Maj+Y)"
+    "message": "Créer un message secret (Ctrl+Maj+Y)"
+  },
+  "autoDecodingMenuTitle": {
+    "message": "Déchiffrer automatiquement les messages secrets (Ctrl+Maj+L)"
+  },
+  "autoDecodingCommandDesc": {
+    "message": "Activer ou désactiver le déchiffrement automatique"
   }
 }
