@@ -15,6 +15,7 @@ window.SecretMessageWidget = (function () {
         logo: '<svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="smwBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E3A8A"/><stop offset=".55" stop-color="#3473CE"/><stop offset="1" stop-color="#7C4DFF"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#smwBg)"/><path fill="#fff" d="M9 5h14a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5h-8l-6 5v-5.2A5 5 0 0 1 4 18v-8a5 5 0 0 1 5-5Z"/><path d="M13 13.5v-1.8a3 3 0 0 1 6 0v1.8" fill="none" stroke="#3B5BD6" stroke-width="2"/><rect x="11" y="13" width="10" height="7.5" rx="1.8" fill="#3B5BD6"/></svg>',
         collapse: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg>',
         expand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg>',
+        help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>',
         close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
         eye: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="smw-eye-slash" d="m3 3 18 18"/></svg>',
         fingerprint: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a9 9 0 0 1 17 4v2M3 11v2a8 8 0 0 1-1 4"/><path d="M6 17a12 12 0 0 0 1-5v-1a5 5 0 0 1 10 0v2a19 19 0 0 1-1 6"/><path d="M9 21a16 16 0 0 0 2-8v-2a1 1 0 0 1 2 0v2a23 23 0 0 1-1 8"/></svg>',
@@ -47,6 +48,7 @@ window.SecretMessageWidget = (function () {
     <span class="smw-logo">${ICONS.logo}</span>
     <div class="smw-title"><strong>Secret Message</strong><span>Public phrase, private message</span></div>
     <div class="smw-header-actions">
+      <button type="button" class="smw-icon-button" data-ref="help" title="Help">${ICONS.help}</button>
       <button type="button" class="smw-icon-button" data-ref="toggleCollapse" title="Collapse">${ICONS.collapse}</button>
       <button type="button" class="smw-icon-button" data-ref="close" title="Close">${ICONS.close}</button>
     </div>
@@ -276,6 +278,8 @@ window.SecretMessageWidget = (function () {
 
     ui.toggleCollapse.addEventListener('click', () => setCollapsed(!state.collapsed));
     ui.close.addEventListener('click', () => setShown(false));
+    // Pages cannot open extension pages themselves; background.js opens the documentation in a new tab.
+    ui.help.addEventListener('click', () => chrome.runtime.sendMessage({type: 'openHelp'}).catch(() => undefined));
 
     // Keep page keyboard shortcuts (Facebook, VK, Telegram) from reacting to typing inside the widget.
     ['keydown', 'keyup', 'keypress'].forEach((type) => {
@@ -487,6 +491,47 @@ window.SecretMessageWidget = (function () {
         return ` Public phrase appended to history.${removedNote(removed)}`;
     }
 
+    //-----------------------saving settings----------------------------------------------------------------------------
+
+    const AUTO_SAVE_DELAY = 800;
+    const encryptionOf = (workspace, password, ownerSignature) => JSON.stringify([workspace, password, ownerSignature]);
+    // Workspace, password and owner signature as saved for this site; null while nothing is saved.
+    let savedEncryption = null;
+    let autoSaveTimer = null;
+
+    async function saveSettings(message) {
+        // Message history is conversation content: it lives only in this page and is never saved.
+        const settings = currentSettings();
+        settings.publicConversationDetails.history = [];
+        await SecretMessageSettingsStore.save(SECRET_MESSAGE_SETTINGS_KEY, settings);
+        savedEncryption = encryptionOf(settings.workspaceId, settings.password, settings.ownerSignature);
+        status(message);
+    }
+
+    // Changed encryption settings are saved on their own, a moment after the last change; changed conversation details
+    // only with Save (or along with the encryption settings).
+    function scheduleAutoSave() {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(autoSave, AUTO_SAVE_DELAY);
+    }
+
+    async function autoSave() {
+        if (busy) {
+            scheduleAutoSave();
+            return;
+        }
+        // An empty workspace or password is never saved over usable ones.
+        if (!ui.workspace.value.trim() || !ui.password.value ||
+            encryptionOf(ui.workspace.value, ui.password.value, ui.ownerSignature.value) === savedEncryption) {
+            return;
+        }
+        try {
+            await saveSettings(`Encryption settings saved automatically for ${window.location.hostname}.`);
+        } catch (error) {
+            status(error.message || 'Unable to save obfuscation settings in this browser.', true);
+        }
+    }
+
     async function copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
@@ -522,6 +567,7 @@ window.SecretMessageWidget = (function () {
         ui.workspace.focus();
         ui.workspace.select();
         status('New workspace generated.');
+        scheduleAutoSave();
     });
     ui.togglePassword.addEventListener('click', () => setPasswordVisible(ui.password.type === 'password'));
 
@@ -536,6 +582,7 @@ window.SecretMessageWidget = (function () {
                 }
                 ui.ownerSignature.value = signature;
                 status('Owner signature retrieved for this browser.');
+                scheduleAutoSave();
             } catch (error) {
                 status(error.message || 'Unable to retrieve this browser’s fingerprint.', true);
             }
@@ -545,17 +592,15 @@ window.SecretMessageWidget = (function () {
     ui.saveSettings.addEventListener('click', async () => {
         ui.saveSettings.disabled = true;
         try {
-            // Message history is conversation content: it lives only in this page and is never saved.
-            const settings = currentSettings();
-            settings.publicConversationDetails.history = [];
-            await SecretMessageSettingsStore.save(SECRET_MESSAGE_SETTINGS_KEY, settings);
-            status(`Obfuscation settings saved securely for ${window.location.hostname}.`);
+            await saveSettings(`Obfuscation settings saved securely for ${window.location.hostname}.`);
         } catch (error) {
             status(error.message || 'Unable to save obfuscation settings in this browser.', true);
         } finally {
             ui.saveSettings.disabled = busy;
         }
     });
+
+    [ui.workspace, ui.password, ui.ownerSignature].forEach((input) => input.addEventListener('input', scheduleAutoSave));
 
     ui.exportSettings.addEventListener('click', () => {
         try {
@@ -584,9 +629,14 @@ window.SecretMessageWidget = (function () {
         }
         try {
             const data = JSON.parse(await file.text());
-            if (data && Object.hasOwn(data, 'workspaceId')) applySettings(data);
-            else applyConversationDetails(data); // Support conversation-only files.
-            status('Obfuscation settings loaded. Select Save to remember them in this browser.');
+            if (data && Object.hasOwn(data, 'workspaceId')) {
+                applySettings(data);
+                status('Obfuscation settings loaded.');
+                scheduleAutoSave();
+            } else {
+                applyConversationDetails(data); // Support conversation-only files.
+                status('Conversation details loaded. Select Save to remember them in this browser.');
+            }
         } catch (error) {
             status(error instanceof SyntaxError ? 'The selected file is not valid JSON.' : error.message, true);
         } finally {
@@ -689,6 +739,7 @@ window.SecretMessageWidget = (function () {
                 // Ignore history kept by earlier versions; every page load starts with an empty history.
                 if (saved !== null) {
                     applySettings({...saved, publicConversationDetails: {...saved.publicConversationDetails, history: []}});
+                    savedEncryption = encryptionOf(saved.workspaceId, saved.password, saved.ownerSignature);
                 }
             } catch (_) {
                 status('Saved settings could not be loaded. You can open a settings JSON file instead.', true);

@@ -103,6 +103,13 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 
 //-----------------------widget-----------------------------------------------------------------------------------------
 
+// The "?" button of the widget.
+chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type === "openHelp") {
+        chrome.tabs.create({url: chrome.runtime.getURL("docs/help.html")});
+    }
+});
+
 // Chrome does not let extensions script its own pages (chrome://, the Web Store, the PDF viewer…), so a click there
 // does nothing. Without access the tab URL is not even visible; only http(s) pages are tried, and Chrome's refusal on
 // protected http(s) pages is expected, not an error.

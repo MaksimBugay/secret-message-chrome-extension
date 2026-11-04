@@ -41,7 +41,8 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 - Obfuscation settings (workspace, password, owner signature, topic/style/language) are saved per site
   (e.g. www.facebook.com, vk.com, web.telegram.org) in that site's IndexedDB, in the same encrypted format the
   Secret Message page uses. They survive reinstalling the extension and are removed when the site's data is cleared.
-  Import/export as JSON.
+  Changes to the workspace, password or owner signature are saved automatically a moment later (never an empty
+  workspace or password); topic, style and language alone only with *Save*. Import/export as JSON.
 - **Message history** is edited in a *Message history* dialog (Settings → Conversation details → Edit), like on the
   Secret Message page. It lives only in the open page: it is never saved in the browser and starts empty after a
   reload. Exported JSON files still include it.
@@ -62,6 +63,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | `js/lib/device-secret.js`, `client.min.js`, `detect.min.js` | Browser fingerprint for the owner signature (copies) |
 | `js/lib/jszip.min.js` | JSZip 3.10.1 |
 | `js/lib/secret-message-env.js` | Globals the site's bundle normally provides (`PushcaClient.clusterBaseUrl`, `stringToArrayBuffer`) and the settings key |
+| `docs/help.html` | Documentation, opened from the widget's **?** button |
 | `images/icon-*.png` | Icons; sources in `resources/icon-src/*.svg` |
 | `_locales/*` | en, ru, uk, de, es, fr |
 
@@ -72,4 +74,4 @@ the site changes.
 Open `chrome://extensions`, enable *Developer mode*, *Load unpacked* and select this folder.
 All hot keys can be changed in `chrome://extensions/shortcuts`.
 
-To package: `zip -r secret-message.zip manifest.json background.js js css images _locales LICENSE`
+To package: `zip -r secret-message.zip manifest.json background.js js css images docs _locales LICENSE -x '*.DS_Store'`

@@ -1,0 +1,363 @@
+<!doctype html>
+<!-- Documentation, opened from the "?" button of the widget (background.js opens it in a new tab). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secret Message – Help</title>
+<link rel="icon" href="../images/icon-32.png">
+<style>
+    :root {
+        --bg: #f6f7fb; --panel: #ffffff; --text: #18202c; --muted: #5b6676; --border: #e2e6ee; --accent: #3473ce; --violet: #6d4ae0;
+        --code: #eef1f7; --note: #f2edff; --warn: #fff4e5; --warn-border: #f5c27a;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #0b111b; --panel: #121b29; --text: #e8eef7; --muted: #93a4bb; --border: #26364f; --accent: #6ea4ff; --violet: #a78bfa;
+            --code: #1a2638; --note: #1e1a3a; --warn: #2b2214; --warn-border: #7a5a24;
+        }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    a { color: var(--accent); }
+    .layout { max-width: 1120px; margin: 0 auto; padding: 0 20px 80px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; }
+    header.hero { grid-column: 1 / -1; display: flex; align-items: center; gap: 20px; padding: 40px 0 24px; border-bottom: 1px solid var(--border); }
+    header.hero img { width: 72px; height: 72px; }
+    header.hero h1 { margin: 0; font-size: 34px; letter-spacing: -.5px; }
+    header.hero p { margin: 4px 0 0; color: var(--muted); font-size: 18px; }
+    nav.toc { position: sticky; top: 20px; align-self: start; padding-top: 28px; font-size: 14px; }
+    nav.toc strong { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    nav.toc a { display: block; padding: 4px 0; color: var(--text); text-decoration: none; }
+    nav.toc a.sub { padding-left: 14px; color: var(--muted); }
+    nav.toc a:hover { color: var(--accent); }
+    main { min-width: 0; }
+    section { padding-top: 28px; }
+    h2 { font-size: 26px; margin: 0 0 12px; padding-top: 8px; }
+    h3 { font-size: 19px; margin: 28px 0 8px; }
+    p, li { max-width: 760px; }
+    code, kbd { font: 14px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border-radius: 5px; padding: 1px 6px; }
+    kbd { border: 1px solid var(--border); border-bottom-width: 2px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; margin: 14px 0; }
+    .note { background: var(--note); border-left: 4px solid var(--violet); border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+    .warn { background: var(--warn); border-left: 4px solid var(--warn-border); border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+    ol.steps { counter-reset: step; list-style: none; padding: 0; }
+    ol.steps > li { counter-increment: step; position: relative; padding: 0 0 18px 52px; }
+    ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+        background: linear-gradient(135deg, #3473ce, #7c4dff); color: #fff; font-weight: 700; }
+    ol.steps > li strong:first-child { display: block; }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .flow div { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+    .flow b { display: block; font-size: 15px; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 15px; background: var(--panel); border-radius: 12px; overflow: hidden; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+    tr:last-child td { border-bottom: 0; }
+    .decoded { color: #8b5cf6; font-style: italic; }
+    dl dt { font-weight: 600; margin-top: 14px; }
+    dl dd { margin: 4px 0 0 0; color: var(--text); max-width: 760px; }
+    details { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin: 10px 0; }
+    details summary { cursor: pointer; font-weight: 600; }
+    details p { margin: 8px 0 0; }
+    footer { grid-column: 1 / -1; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); padding-top: 18px; }
+    @media (max-width: 860px) {
+        .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+        nav.toc { display: none; }
+        .flow { grid-template-columns: 1fr 1fr; }
+        header.hero h1 { font-size: 28px; }
+    }
+</style>
+</head>
+<body>
+<div class="layout">
+    <header class="hero">
+        <img src="../images/icon-128.png" alt="">
+        <div>
+            <h1>Secret Message</h1>
+            <p>Public phrase, private message: hide a private message inside an ordinary comment or chat message.</p>
+        </div>
+    </header>
+
+    <nav class="toc">
+        <strong>Contents</strong>
+        <a href="#purpose">What it is for</a>
+        <a href="#how">How it works</a>
+        <a href="#quick">Quick start</a>
+        <a href="#features">Features in detail</a>
+        <a class="sub" href="#widget">The widget</a>
+        <a class="sub" href="#encode">Encode in the widget</a>
+        <a class="sub" href="#convert">Convert into secret message</a>
+        <a class="sub" href="#decode">Auto decoding</a>
+        <a class="sub" href="#encryption">Encryption settings</a>
+        <a class="sub" href="#conversation">Conversation details</a>
+        <a class="sub" href="#save">Save, export, import</a>
+        <a href="#sites">Supported sites</a>
+        <a href="#keys">Hot keys</a>
+        <a href="#privacy">Privacy and security</a>
+        <a href="#limits">Limits</a>
+        <a href="#faq">Troubleshooting</a>
+    </nav>
+
+    <main>
+        <section id="purpose">
+            <h2>What it is for</h2>
+            <p>Secret Message lets two or more people talk privately in public places: comments under Facebook, VK or
+                LinkedIn posts, Telegram chats, or any other web page. You write a private message, and the extension
+                turns it into an <b>ordinary-looking public phrase</b> that fits the conversation, for example a
+                friendly reply to the post you are commenting on. Everybody sees just that phrase. Only people who know
+                your <b>workspace and password</b> see the private message behind it.</p>
+            <div class="card">
+                <div>Everybody sees: <i>Beautiful shot! Saturday works for me — I'll bring the thermos ☕</i></div>
+                <div>Your friend sees: <i>Beautiful shot! Saturday works for me — I'll bring the thermos ☕</i>
+                    <span class="decoded">👁 Can't talk here — meet me at 7 by the old bridge</span></div>
+            </div>
+            <p>No registration and no account are needed: the workspace and password you agree on are all it takes.</p>
+        </section>
+
+        <section id="how">
+            <h2>How it works</h2>
+            <div class="flow">
+                <div><b>1. Encrypt</b>Your message is compressed and encrypted in your browser with your password.</div>
+                <div><b>2. Store</b>The encrypted message is saved on the Secret Message server, which generates a matching public phrase.</div>
+                <div><b>3. Post</b>You post the public phrase like any other comment or message.</div>
+                <div><b>4. Decode</b>Your friend's extension looks the phrase up and decrypts the message with the same password.</div>
+            </div>
+            <p>The public phrase is a key to look the message up, not the message itself: the private text is never
+                hidden inside the phrase, so the phrase can read completely naturally. The server stores only encrypted
+                bytes it cannot read.</p>
+        </section>
+
+        <section id="quick">
+            <h2>Quick start</h2>
+            <ol class="steps">
+                <li><strong>Pin the extension</strong>After installing, click the puzzle-piece icon (Extensions) in the
+                    Chrome toolbar and the pin next to <i>Secret Message – Encrypted Chat Phrases</i>. Its icon now
+                    stays in the toolbar.</li>
+                <li><strong>Agree on a workspace and password</strong>Open a site where you will talk (for example
+                    facebook.com), click the Secret Message icon and go to <i>Settings → Encryption</i>. Keep or generate
+                    a workspace and enter a password: they are saved automatically. Share both with your friend privately,
+                    for example in person; your friend enters the same values.</li>
+                <li><strong>Write your private message in a comment box</strong>Click into a comment, reply or chat
+                    box and type the private message.</li>
+                <li><strong>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></strong>Or right-click the box and
+                    choose <i>Convert into secret message</i>. A moment later the text is replaced with a public phrase
+                    that fits the post. Post it as usual.</li>
+                <li><strong>Your friend reads it</strong>Your friend turns on auto decoding with
+                    <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> (the toolbar icon shows <b>ON</b>) and holds the mouse
+                    pointer over your comment: the private message appears right after it, in violet italics.</li>
+            </ol>
+            <div class="note">On a Mac the hot keys use the <b>Control</b> key, not Command:
+                <kbd>Control</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>.</div>
+        </section>
+
+        <section id="features">
+            <h2>Features in detail</h2>
+
+            <h3 id="widget">The widget</h3>
+            <p>Click the toolbar icon, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd> or choose <i>Create a secret
+                message</i> in the right-click menu to open the Secret Message widget on the current page. The widget is
+                added to a page only then; on the supported sites, the auto decoding script waits until you turn it
+                on.</p>
+            <ul>
+                <li><b>Move</b> it by dragging its header; <b>collapse</b> it to a small pill with the arrow button and
+                    expand it again by clicking the pill. Position and state are remembered.</li>
+                <li><b>Help</b>: the <b>?</b> button in the header opens this page.</li>
+                <li>Two tabs: <b>Derivation</b> (the wand: write and encode a message) and <b>Settings</b> (the gear).</li>
+                <li>When the widget opens, the <b>topic</b> follows the site (<code>FB post</code>, <code>VK post</code>,
+                    <code>LinkedIn post</code>, otherwise <code>Web chat</code>), and <b>text you selected</b> on the page
+                    is added to the message history, so the phrase fits that conversation. Private messages shown by
+                    auto decoding are left out of the selection.</li>
+                <li>Without a password the widget opens on <i>Settings → Encryption</i>.</li>
+                <li>Auto decoding pauses while the widget is shown (expanded or collapsed), so it does not change text
+                    you are working with.</li>
+            </ul>
+
+            <h3 id="encode">Encode in the widget</h3>
+            <p>On the Derivation tab, type the private message and click <b>Encode message</b>. The message is encrypted,
+                saved and the public phrase is <b>copied to the clipboard</b>, ready to paste. If the clipboard is not
+                available, the phrase is shown under the button instead. With <i>Append generated phrases to
+                history</i> on, the phrase is also added to the message history.</p>
+
+            <h3 id="convert">Convert into secret message</h3>
+            <p>The fastest way: write the private message right in the page's text box (a comment, a reply, a chat
+                message, any text field) and press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>, or right-click the box
+                and choose <i>Convert into secret message</i>. The widget does not need to be open.</p>
+            <ol>
+                <li><b>Conversation context.</b> The message history is cleared and starts with what you are answering,
+                    so the phrase fits it: the caption of the post you comment on, the comment you reply to, or the last
+                    message of the open chat (Telegram Web). See <a href="#sites">Supported sites</a>.</li>
+                <li><b>Names stay.</b> A reply starting with the name of the person you answer (VK fills in
+                    <code>Anna, </code>; Facebook and LinkedIn insert a mention) keeps it: only the text after the name is
+                    encrypted, and the name (or mention) stays in front of the public phrase.</li>
+                <li><b>Encoding.</b> A small note above the text box shows the progress. It uses the widget's current
+                    settings: the saved ones, or what you changed in the widget on this page.</li>
+                <li><b>Replacing.</b> Your text is replaced with the public phrase; <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes
+                    it. If you changed the text meanwhile, or the site does not accept the replacement, the phrase is
+                    copied to the clipboard instead.</li>
+            </ol>
+            <p>Without a workspace or password, the widget opens on <i>Settings → Encryption</i> and tells you which one
+                is missing.</p>
+
+            <h3 id="decode">Auto decoding</h3>
+            <p>On Facebook, Messenger, VK, LinkedIn and Telegram Web, the extension can show the private messages of
+                phrases on the page. It is <b>off by default</b>: turn it on or off with
+                <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> or the right-click menu item <i>Auto-decode secret
+                messages</i>. The setting applies to all tabs, and the toolbar icon shows an <b>ON</b> badge while it is
+                on.</p>
+            <ul>
+                <li>Hold the mouse pointer over a message or comment for a moment: if it is a secret message for your
+                    workspace and password, the private message appears right after it, after a magic-eye icon. The
+                    phrase itself stays untouched.</li>
+                <li>It uses the obfuscation settings <b>saved</b> for the site. Once the widget was opened on the page,
+                    it uses the widget's fields instead, including unsaved changes.</li>
+                <li>At most one lookup per second; a text found not to be a secret message is not looked up again with
+                    the same settings. Failed lookups (offline, server busy) are retried on the next hover.</li>
+                <li>Emoji drawn as images are read as emoji, and a reply starting with a mention is also looked up
+                    without the name.</li>
+            </ul>
+
+            <h3 id="encryption">Encryption settings</h3>
+            <p><i>Settings → Encryption</i>. You and the people you talk to must use the <b>same three values</b>.</p>
+            <dl>
+                <dt>Workspace</dt>
+                <dd>A name for your shared space, up to 100 characters; it is also part of the encryption key. A random
+                    one is generated when the field is empty; <i>Generate</i> makes a new one. Different workspaces keep
+                    different groups apart.</dd>
+                <dt>Password</dt>
+                <dd>Encrypts your messages. Choose a strong one and share it only privately. The eye button shows or
+                    hides it. Without the password nobody, including the server, can read your messages, and they cannot
+                    be recovered if it is lost.</dd>
+                <dt>Owner signature (optional)</dt>
+                <dd>An extra shared value, up to 200 characters. If the sender uses one, readers need exactly the same
+                    value to decode. The fingerprint button fills in a value computed from this browser; to share
+                    messages with others, give them that value too.</dd>
+            </dl>
+
+            <h3 id="conversation">Conversation details</h3>
+            <p><i>Settings → Conversation details</i> shape how the public phrase reads.</p>
+            <dl>
+                <dt>Topic</dt>
+                <dd>What the conversation is about. Type anything (up to 500 characters) or pick a preset:
+                    FB post, VK post, LinkedIn post, Web chat, Everyday life, Work, Travel, Family, Friends, Technology,
+                    Food, Health, Entertainment, Plans.</dd>
+                <dt>Style</dt>
+                <dd>How the phrase sounds (up to 100 characters): Casual, Friendly, Formal, Professional, Humorous,
+                    Romantic, Supportive, Direct, Curious, Storytelling, or your own.</dd>
+                <dt>Language</dt>
+                <dd>The language of the phrase: English, Spanish, French, German, Portuguese, Russian, Chinese,
+                    Japanese, Arabic or Hindi.</dd>
+                <dt>Message history</dt>
+                <dd>The latest messages of the conversation (up to 1500 characters in total; the oldest are removed
+                    first), so the phrase fits in as a natural reply. <i>Edit</i> opens it: append, change or remove
+                    messages, or clear the history. The history lives only in the open page: it is never saved in the
+                    browser and starts empty after a reload.</dd>
+                <dt>Append generated phrases to history</dt>
+                <dd>On by default: each new public phrase is added to the history, so the next one continues the
+                    conversation.</dd>
+            </dl>
+
+            <h3 id="save">Save, export, import</h3>
+            <ul>
+                <li><b>Save</b> (disk icon) keeps workspace, password, owner signature, topic, style and language
+                    <b>for the current site</b>, encrypted in that site's browser storage. Settings are kept per site:
+                    set them on each site you use (facebook.com, vk.com, linkedin.com, web.telegram.org…). Saved
+                    settings survive reinstalling the extension and are removed when the site's data is cleared. The
+                    message history is never saved.</li>
+                <li><b>Automatic saving</b>: when you change the workspace, password or owner signature (typing,
+                    <i>Generate</i>, the fingerprint button or an imported file), all settings are saved a moment later
+                    on their own. An empty workspace or password is never saved. Changes to the topic, style or
+                    language alone are kept only with <i>Save</i>.</li>
+                <li><b>Export</b> (download icon) saves the settings, including the history, as a JSON file.</li>
+                <li><b>Import</b> (upload icon) loads such a file, which is then saved automatically, or a file with
+                    only conversation details; click <i>Save</i> to keep those.</li>
+            </ul>
+            <div class="warn">An exported file contains your <b>password in plain text</b>. Keep it safe, and transfer
+                it only over a channel you trust.</div>
+        </section>
+
+        <section id="sites">
+            <h2>Supported sites</h2>
+            <table>
+                <tr><th>Site</th><th>Context for <i>Convert</i></th><th>Auto decoding</th></tr>
+                <tr><td>Facebook</td><td>Caption of the post; the answered comment: a reply box
+                    labelled "Reply to …" or a reply starting with a mention</td><td>Yes</td></tr>
+                <tr><td>Messenger</td><td>None</td><td>Yes</td></tr>
+                <tr><td>VK</td><td>Caption of the post; the answered comment: a reply starting with "Name, "</td><td>Yes</td></tr>
+                <tr><td>LinkedIn</td><td>Caption of the post; the answered comment: a reply starting with a mention</td><td>Yes</td></tr>
+                <tr><td>Telegram Web</td><td>Last message of the open chat</td><td>Yes</td></tr>
+                <tr><td>Any other site</td><td>None (topic <code>Web chat</code>)</td><td>No</td></tr>
+            </table>
+            <p>The widget and <i>Convert into secret message</i> work on any web page except Chrome's own pages
+                (<code>chrome://</code>, the Chrome Web Store) where extensions are not allowed.</p>
+        </section>
+
+        <section id="keys">
+            <h2>Hot keys</h2>
+            <table>
+                <tr><th>Windows / Linux</th><th>Mac</th><th>Action</th></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd></td><td><kbd>Control</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd></td><td>Open the widget</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td><kbd>Control</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>Convert the text in the focused text box into a secret message</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td><kbd>Control</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>Turn auto decoding on or off</td></tr>
+            </table>
+            <p>Change them at <code>chrome://extensions/shortcuts</code>. If a hot key does nothing, another extension
+                may use it: set a different one there.</p>
+        </section>
+
+        <section id="privacy">
+            <h2>Privacy and security</h2>
+            <ul>
+                <li><b>Encrypted in your browser.</b> The private message is compressed and encrypted with AES-GCM
+                    (256-bit key derived from your password with PBKDF2-SHA-256, 100,000 iterations, the workspace as
+                    salt) before it leaves the browser. The server never receives the message or the password.</li>
+                <li><b>What the server receives:</b> the encrypted message, the workspace, a SHA-256 hash of the
+                    password, the owner signature if set, and the conversation details used to write the phrase:
+                    topic, style, language and the message history. The <b>history is sent as plain text</b>: it holds
+                    the caption, comment or chat message you answer, and earlier public phrases. Do not put private
+                    text into the history.</li>
+                <li><b>The public phrase is public.</b> Anybody can read it; only people with the workspace, password
+                    and owner signature can read the private message.</li>
+                <li><b>Stored settings</b> are encrypted in each site's browser storage. The message history is never
+                    stored.</li>
+                <li><b>Auto decoding</b> looks up texts you point at only while it is turned on, and only on the
+                    supported sites.</li>
+            </ul>
+        </section>
+
+        <section id="limits">
+            <h2>Limits</h2>
+            <ul>
+                <li>Encrypted message: up to 32 KiB, which fits long messages since the text is compressed first.</li>
+                <li>Message history: up to 1500 characters in total; a single message cannot be longer.</li>
+                <li>Workspace up to 100, owner signature up to 200, topic up to 500, style up to 100 characters.</li>
+                <li>Auto decoding looks at texts of 12 to 5000 characters.</li>
+            </ul>
+        </section>
+
+        <section id="faq">
+            <h2>Troubleshooting</h2>
+            <details><summary>My friend does not see the private message</summary>
+                <p>Check that auto decoding is on (the toolbar icon shows <b>ON</b>), and that your friend entered
+                    <b>exactly</b> the same workspace, password and owner signature <b>on that site</b>: settings are
+                    kept per site. Reload the page after saving, then hold the pointer over the comment for a moment.</p></details>
+            <details><summary>Convert into secret message does nothing</summary>
+                <p>Put the cursor in the text box first, and check the hot key at
+                    <code>chrome://extensions/shortcuts</code>. After installing or updating the extension, reload the
+                    tabs that were already open.</p></details>
+            <details><summary>"The text could not be replaced"</summary>
+                <p>Some editors refuse changes made by extensions. The public phrase is in the clipboard: select your
+                    text and paste.</p></details>
+            <details><summary>The phrase does not fit the conversation</summary>
+                <p>Open the widget's <i>Settings → Conversation details</i> and adjust the topic, style or language, or
+                    edit the message history so it holds the messages you answer.</p></details>
+            <details><summary>The widget does not open</summary>
+                <p>Extensions cannot run on Chrome's own pages (<code>chrome://</code>, the Chrome Web Store, the PDF
+                    viewer). Open a regular web page.</p></details>
+            <details><summary>I lost the password</summary>
+                <p>Messages cannot be decrypted without it; nobody can recover them. Agree on a new password and use it
+                    for new messages.</p></details>
+        </section>
+    </main>
+
+    <footer>Secret Message for <a href="https://secure.fileshare.ovh/secret-message.html">Secure FileShare Secret Message</a>.</footer>
+</div>
+</body>
+</html>
