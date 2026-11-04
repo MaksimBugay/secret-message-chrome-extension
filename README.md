@@ -52,7 +52,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | `background.js` | Icon / hot key / menu handlers, one-time script injection, auto decoding on / off |
 | `js/secret-message-widget.js`, `css/secret-message-widget.css` | The widget (shadow DOM) |
 | `js/conversation-context.js` | What a reply answers (post caption, comment, last chat message) for *Convert into secret message* |
-| `js/sites/sites.js` | Site registry: `SecretMessageSites.forHost()` returns the site of the page's domain (or a generic one) |
+| `js/sites/sites.js` | Site registry: `SecretMessageSites.forPage()` returns the site of the page's domain (or a generic one) |
 | `js/sites/facebook.js`, `vk.js`, `telegram.js` | Site-specific selectors and settings (topic, posts / comments / chat messages, reply box labels); add a site by registering it in a new file and listing it in `manifest.json` and `background.js` |
 | `js/hover-decoder.js` | Content script for Facebook / VK / Telegram: auto decoding – shows the private message after the phrase under the mouse pointer |
 | `js/lib/secret-message.js` | Encode / decode (copy of the site's script) |

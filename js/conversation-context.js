@@ -143,7 +143,7 @@ window.SecretMessageConversationContext = (function () {
          * reply answers, and the name of the answered commenter the reply starts with (kept out of the secret).
          */
         find(editor, text) {
-            const site = SecretMessageSites.forHost();
+            const site = SecretMessageSites.forPage();
             if (site.message) {
                 const message = lastMessage(site);
                 return {context: message ? {kind: 'message', text: message} : null, opener: ''};

@@ -877,7 +877,7 @@ window.SecretMessageWidget = (function () {
             const selection = window.getSelection()?.toString().trim() ?? '';
             ready.then(() => {
                 reveal();
-                ui.topic.value = SecretMessageSites.forHost().topic;
+                ui.topic.value = SecretMessageSites.forPage().topic;
                 status(`Topic set to “${ui.topic.value}”.${addSelectionToHistory(selection)}`);
                 // Without a password nothing can be encoded, so open on the Settings tab.
                 if (ui.password.value) {
