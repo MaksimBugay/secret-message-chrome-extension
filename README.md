@@ -22,6 +22,8 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
     Facebook, a box labelled "Reply to …"), or the last message of the open chat (Telegram Web);
   - the message is encoded with the widget's current obfuscation settings and history, without opening the widget;
     a small note above the text box shows the progress;
+  - a reply starting with the answered commenter's name (VK's `Anna, `, a Facebook mention) keeps it: only the text
+    after the name is encrypted and replaced, so the name (and a mention) stays in front of the public phrase;
   - the text in the box is replaced with the public phrase (undo with `Ctrl+Z`). If the text was changed meanwhile,
     the phrase is copied to the clipboard instead;
   - without a workspace or password the widget opens on Settings → Encryption with the missing field focused.
@@ -31,7 +33,8 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   widget's *Save* button and is paused while the widget is shown (expanded or collapsed).
   Hovering over a text for 0.4 s tries to decode it (at most one request per second); emoji drawn as images are read
   as their `alt` text. The server matches phrases exactly, and sites often drop the invisible `U+FE0F` after emoji such
-  as 🕷 ❤ ☀, so phrases with these emoji are also tried with and without it. The public phrase is left untouched and the private message is shown right after it, in italic
+  as 🕷 ❤ ☀, so phrases with these emoji are also tried with and without it. A reply starting with a link (a VK or Facebook mention of the answered
+  person) is tried without that name first (*Convert into secret message* keeps it out of the phrase), then as it is. The public phrase is left untouched and the private message is shown right after it, in italic
   violet, after a magic-eye icon. A text the server reports as not secret is checked only once per credentials;
   failed requests (offline, rate limit, server error) are retried on the next hover.
 - Obfuscation settings (workspace, password, owner signature, topic/style/language) are saved per site

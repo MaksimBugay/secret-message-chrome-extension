@@ -191,6 +191,17 @@ window.SecretMessageHoverDecoder = (function () {
         return [...new Set([text, withSelectors, text.replace(/\uFE0F/g, '')])];
     }
 
+    /**
+     * Texts to look up for a candidate: a reply starting with the answered person's name, a link (a VK or Facebook
+     * mention), is tried without it first, since "Convert into secret message" keeps the name out of the phrase.
+     */
+    function phrasesOf(candidate) {
+        const name = candidate.element.querySelector('a')?.textContent.trim();
+        const rest = name && candidate.text.startsWith(name) ?
+            candidate.text.slice(name.length).replace(/^\s*[,:]?\s*/, '') : '';
+        return [...new Set([...(rest.length >= MIN_LENGTH ? spellings(rest) : []), ...spellings(candidate.text)])];
+    }
+
     async function decode(text, current) {
         if (checked.has(text)) {
             return checked.get(text);
@@ -250,7 +261,7 @@ window.SecretMessageHoverDecoder = (function () {
             return;
         }
         for (const candidate of candidatesAt(node)) {
-            for (const phrase of spellings(candidate.text)) {
+            for (const phrase of phrasesOf(candidate)) {
                 const message = await decode(phrase, current);
                 if (message === null) {
                     continue;

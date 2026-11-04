@@ -754,33 +754,63 @@ window.SecretMessageWidget = (function () {
         b.replace(/️/g, '').replace(/\s+/g, ' ').trim();
 
     // insertText goes through the editor's own input handling (Facebook's Lexical, Telegram, VK) and can be undone.
-    async function replaceEditorText(editor, phrase) {
+    // Selects the text of a rich text editor after its first length characters, as read by editorText (which skips
+    // the leading spaces).
+    function selectAfter(editor, length) {
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+        let counted = 0;
+        for (let node = walker.nextNode(); node && counted < length; node = walker.nextNode()) {
+            let offset = counted ? 0 : node.nodeValue.match(/^\s*/)[0].length;
+            const taken = Math.min(length - counted, node.nodeValue.length - offset);
+            counted += taken;
+            offset += taken;
+            if (counted === length) range.setStart(node, offset);
+        }
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    // Replaces the text after the opener (the answered commenter's name), so a mention stays a mention.
+    async function replaceEditorText(editor, phrase, opener) {
         editor.focus();
         if (isTextField(editor)) {
-            editor.select();
+            editor.setSelectionRange(opener.length, editor.value.length);
             if (document.execCommand('insertText', false, phrase)) return true;
             // The prototype's setter keeps React-controlled fields in sync.
-            Object.getOwnPropertyDescriptor(Object.getPrototypeOf(editor), 'value').set.call(editor, phrase);
+            Object.getOwnPropertyDescriptor(Object.getPrototypeOf(editor), 'value').set.call(editor, opener + phrase);
             editor.dispatchEvent(new Event('input', {bubbles: true}));
             return true;
         }
         // Rich text editors (Facebook's Lexical) take the selection over on the selectionchange event, after this task,
         // and apply input to their own selection; they also update the page after the input event.
-        const selectAll = async () => {
-            window.getSelection().selectAllChildren(editor);
+        const select = async (length) => {
+            if (length) selectAfter(editor, length);
+            else window.getSelection().selectAllChildren(editor);
             await pause();
         };
-        await selectAll();
+        const expected = opener + phrase;
+        const replaced = async () => {
+            await pause();
+            return sameText(editorText(editor), expected);
+        };
+        await select(opener.length);
         document.execCommand('insertText', false, phrase);
-        await pause();
-        if (sameText(editorText(editor), phrase)) return true;
+        if (await replaced()) return true;
+        // The whole text, the opener as plain text.
+        if (opener) {
+            await select(0);
+            document.execCommand('insertText', false, expected);
+            if (await replaced()) return true;
+        }
         // Editors ignoring insertText still handle pasted text.
-        await selectAll();
+        await select(0);
         const clipboardData = new DataTransfer();
-        clipboardData.setData('text/plain', phrase);
+        clipboardData.setData('text/plain', expected);
         editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData, bubbles: true, cancelable: true}));
-        await pause();
-        return sameText(editorText(editor), phrase);
+        return replaced();
     }
 
     const CONTEXT_NAMES = {post: 'Post caption', comment: 'Answered comment', message: 'Last chat message'};
@@ -802,7 +832,13 @@ window.SecretMessageWidget = (function () {
             notify('Put the cursor in a text box with your private message first.', {error: true, near: editor});
             return;
         }
-        const context = SecretMessageConversationContext.find(editor, input);
+        const {context, opener} = SecretMessageConversationContext.find(editor, input);
+        // "Anna, " stays in front of the public phrase; only the rest is the private message.
+        const message = input.slice(opener.length);
+        if (!message.trim()) {
+            notify(`Write your private message after “${opener.trim()}” first.`, {error: true, near: editor});
+            return;
+        }
         await ready;
         if (busy) {
             notify('Secret Message is busy – try again in a moment.', {error: true, near: editor});
@@ -820,12 +856,12 @@ window.SecretMessageWidget = (function () {
         notify('Encrypting your message…', {near: editor, closing: false});
         await withLockedControls(async () => {
             try {
-                const phrase = await encode(input);
+                const phrase = await encode(message);
                 appendPhraseToHistory(phrase);
                 // Not over text typed meanwhile.
                 const changed = !editor.isConnected || editorText(editor) !== input;
                 const reason = changed ? 'The text box changed meanwhile' : 'The text could not be replaced';
-                if (!changed && await replaceEditorText(editor, phrase)) {
+                if (!changed && await replaceEditorText(editor, phrase, opener)) {
                     notify(`Replaced with the public phrase.${added}`, {near: editor});
                 } else if (await copyToClipboard(phrase)) {
                     notify(`${reason} – the public phrase is copied to the clipboard.`, {near: editor});

@@ -98,10 +98,14 @@ window.SecretMessageConversationContext = (function () {
         return '';
     }
 
-    // VK starts a reply with "Name, ", Facebook with a mention of the full name.
-    function startsWithName(text, name) {
-        if (!name) return false;
-        return text.startsWith(name) || text.startsWith(`${name.split(/\s+/)[0]},`);
+    const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // The name a reply starts with, with the comma and spaces after it: VK fills in "Anna, ", Facebook a mention of the
+    // full name. Empty when the reply does not start with this name.
+    function openerOf(text, name) {
+        if (!name) return '';
+        const first = escapeRegExp(name.split(/\s+/)[0]);
+        return text.match(new RegExp(`^(?:${escapeRegExp(name)}(?![\\p{L}\\p{N}])[,:]?|${first},)\\s*`, 'u'))?.[0] ?? '';
     }
 
     function answeredComment(site, editor, text) {
@@ -110,7 +114,7 @@ window.SecretMessageConversationContext = (function () {
         if (around) return around;
         const scope = editor.closest(site.post) ?? document.body;
         const comments = [...scope.querySelectorAll(site.comment)].filter((comment) => precedes(comment, editor));
-        const named = comments.findLast((comment) => startsWithName(text, authorOf(site, comment)));
+        const named = comments.findLast((comment) => openerOf(text, authorOf(site, comment)));
         if (named) return named;
         // Facebook opens the reply box under the comment, inside its thread, labelled "Reply to Anna Smith".
         const label = labelOf(editor);
@@ -164,22 +168,22 @@ window.SecretMessageConversationContext = (function () {
         /**
          * @param {Element} editor The text box with the reply.
          * @param {string} text Its text.
-         * @returns {{kind: 'post' | 'comment' | 'message', text: string} | null}
+         * @returns {{context: {kind: 'post' | 'comment' | 'message', text: string} | null, opener: string}} What the
+         * reply answers, and the name of the answered commenter the reply starts with (kept out of the secret).
          */
         find(editor, text) {
             const site = SITES.find(({host}) => host.test(window.location.hostname));
-            if (!site) return null;
+            if (!site) return {context: null, opener: ''};
             if (site.message) {
                 const message = lastMessage(site);
-                return message ? {kind: 'message', text: message} : null;
+                return {context: message ? {kind: 'message', text: message} : null, opener: ''};
             }
             const comment = answeredComment(site, editor, text);
-            if (comment) {
-                const answered = commentText(site, comment);
-                if (answered) return {kind: 'comment', text: answered};
-            }
+            const opener = comment ? openerOf(text, authorOf(site, comment)) : '';
+            const answered = comment ? commentText(site, comment) : '';
+            if (answered) return {context: {kind: 'comment', text: answered}, opener};
             const caption = postCaption(site, editor);
-            return caption ? {kind: 'post', text: caption} : null;
+            return {context: caption ? {kind: 'post', text: caption} : null, opener};
         }
     });
 })();
