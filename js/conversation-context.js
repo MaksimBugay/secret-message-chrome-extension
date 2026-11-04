@@ -58,8 +58,10 @@ window.SecretMessageConversationContext = (function () {
     const labelOf = (editor) => ['aria-label', 'aria-placeholder', 'placeholder', 'data-placeholder']
         .map((name) => editor.getAttribute(name) ?? '').join(' ');
 
-    // The commenter's name: the site's author element, else the first link with text (the first one is often the avatar).
+    // The commenter's name: from the site's author element, else the first link with text (the first one is often the
+    // avatar).
     function authorOf(site, comment) {
+        if (site.authorName) return site.authorName(comment);
         const author = site.author && comment.querySelector(site.author)?.textContent.trim();
         if (author) return author;
         for (const link of comment.querySelectorAll('a')) {

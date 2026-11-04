@@ -12,10 +12,11 @@ const MESSENGER_PAGES = [
     "https://*.vk.com/*",
     "https://vk.ru/*",
     "https://*.vk.ru/*",
-    "https://web.telegram.org/*"
+    "https://web.telegram.org/*",
+    "https://*.linkedin.com/*"
 ];
 
-// Encode / decode, settings storage and the site-specific code (js/sites/); the Facebook / VK / Telegram content scripts in
+// Encode / decode, settings storage and the site-specific code (js/sites/); the Facebook / VK / Telegram / LinkedIn content scripts in
 // manifest.json load them too.
 const CORE_SCRIPTS = [
     "js/lib/secret-message-env.js",
@@ -26,7 +27,8 @@ const CORE_SCRIPTS = [
     "js/sites/sites.js",
     "js/sites/facebook.js",
     "js/sites/vk.js",
-    "js/sites/telegram.js"
+    "js/sites/telegram.js",
+    "js/sites/linkedin.js"
 ];
 
 // The widget, injected on icon click / hot key / menu click (activeTab grants access to the current page).

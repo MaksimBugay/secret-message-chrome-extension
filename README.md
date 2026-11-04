@@ -10,30 +10,31 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   settings* header (save / export / import) Settings has two sub-tabs: **Conversation details** (topic, style,
   language, message history) and **Encryption** (workspace, password, owner signature). The widget opens on
   Settings → Encryption while no password is set.
-- **Encode:** select text on the page (a Facebook post, VK post or chat messages) and open the widget:
+- **Encode:** select text on the page (a Facebook, VK or LinkedIn post, or chat messages) and open the widget:
   - the selected text is added to the conversation history;
-  - the topic is set to `FB post` (facebook.com), `VK post` (vk.com / vk.ru) or `Web chat` (any other site);
+  - the topic is set to `FB post` (facebook.com), `VK post` (vk.com / vk.ru), `LinkedIn post` (linkedin.com) or `Web chat`
+    (any other site);
   - type the private message and press **Encode message** – the public phrase is copied to the clipboard.
     If the clipboard is not available, the phrase is shown in the widget instead.
 - **Convert in place:** type the private message in any text box (a comment, a reply, a chat message) and press
   `Ctrl+Shift+E` (`MacCtrl+Shift+E`) or choose **Convert into secret message** in the text box's context menu:
   - the message history is cleared and starts with what the reply answers (cut to the history limit): the caption
-    of the commented post or the answered comment (Facebook, VK; a reply starting with the commenter's name or, on
+    of the commented post or the answered comment (Facebook, VK, LinkedIn; a reply starting with the commenter's name or, on
     Facebook, a box labelled "Reply to …"), or the last message of the open chat (Telegram Web);
   - the message is encoded with the widget's current obfuscation settings and history, without opening the widget;
     a small note above the text box shows the progress;
-  - a reply starting with the answered commenter's name (VK's `Anna, `, a Facebook mention) keeps it: only the text
+  - a reply starting with the answered commenter's name (VK's `Anna, `, a Facebook or LinkedIn mention) keeps it: only the text
     after the name is encrypted and replaced, so the name (and a mention) stays in front of the public phrase;
   - the text in the box is replaced with the public phrase (undo with `Ctrl+Z`). If the text was changed meanwhile,
     the phrase is copied to the clipboard instead;
   - without a workspace or password the widget opens on Settings → Encryption with the missing field focused.
-- **Auto decoding** (Facebook, Messenger, VK, Telegram Web) is **off by default**. Turn it on or off with the
+- **Auto decoding** (Facebook, Messenger, VK, Telegram Web, LinkedIn) is **off by default**. Turn it on or off with the
   context menu item *Auto-decode secret messages* or `Ctrl+Shift+L` (`MacCtrl+Shift+L`); the setting applies to all
   tabs and the toolbar icon shows an **ON** badge while it is on. It uses the obfuscation settings saved with the
   widget's *Save* button and is paused while the widget is shown (expanded or collapsed).
   Hovering over a text for 0.4 s tries to decode it (at most one request per second); emoji drawn as images are read
   as their `alt` text. The server matches phrases exactly, and sites often drop the invisible `U+FE0F` after emoji such
-  as 🕷 ❤ ☀, so phrases with these emoji are also tried with and without it. A reply starting with a link (a VK or Facebook mention of the answered
+  as 🕷 ❤ ☀, so phrases with these emoji are also tried with and without it. A reply starting with a link (a VK, Facebook or LinkedIn mention of the answered
   person) is tried without that name first (*Convert into secret message* keeps it out of the phrase), then as it is. The public phrase is left untouched and the private message is shown right after it, in italic
   violet, after a magic-eye icon. A text the server reports as not secret is checked only once per credentials;
   failed requests (offline, rate limit, server error) are retried on the next hover.
@@ -48,13 +49,13 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 ## Files
 | File | Purpose |
 |------|---------|
-| `manifest.json` | MV3 manifest, `_execute_action` hot key, `activeTab`, content scripts for Facebook / VK / Telegram |
+| `manifest.json` | MV3 manifest, `_execute_action` hot key, `activeTab`, content scripts for Facebook / VK / Telegram / LinkedIn |
 | `background.js` | Icon / hot key / menu handlers, one-time script injection, auto decoding on / off |
 | `js/secret-message-widget.js`, `css/secret-message-widget.css` | The widget (shadow DOM) |
 | `js/conversation-context.js` | What a reply answers (post caption, comment, last chat message) for *Convert into secret message* |
 | `js/sites/sites.js` | Site registry: `SecretMessageSites.forPage()` returns the site of the page's domain (or a generic one) |
-| `js/sites/facebook.js`, `vk.js`, `telegram.js` | Site-specific selectors and settings (topic, posts / comments / chat messages, reply box labels); add a site by registering it in a new file and listing it in `manifest.json` and `background.js` |
-| `js/hover-decoder.js` | Content script for Facebook / VK / Telegram: auto decoding – shows the private message after the phrase under the mouse pointer |
+| `js/sites/facebook.js`, `vk.js`, `telegram.js`, `linkedin.js` | Site-specific selectors and settings (topic, posts / comments / chat messages, reply box labels); add a site by registering it in a new file and listing it in `manifest.json` and `background.js` |
+| `js/hover-decoder.js` | Content script for Facebook / VK / Telegram / LinkedIn: auto decoding – shows the private message after the phrase under the mouse pointer |
 | `js/lib/secret-message.js` | Encode / decode (copy of the site's script) |
 | `js/lib/security-utils.js` | AES-GCM / PBKDF2 / SHA-256 helpers (copy of the site's script) |
 | `js/lib/secret-message-settings.js` | Encrypted settings store in the page site's IndexedDB (copy of the site's script) |

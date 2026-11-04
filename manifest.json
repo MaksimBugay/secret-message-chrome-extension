@@ -25,7 +25,8 @@
         "https://*.vk.com/*",
         "https://vk.ru/*",
         "https://*.vk.ru/*",
-        "https://web.telegram.org/*"
+        "https://web.telegram.org/*",
+        "https://*.linkedin.com/*"
       ],
       "js": [
         "js/lib/secret-message-env.js",
@@ -37,6 +38,7 @@
         "js/sites/facebook.js",
         "js/sites/vk.js",
         "js/sites/telegram.js",
+        "js/sites/linkedin.js",
         "js/hover-decoder.js"
       ],
       "run_at": "document_idle"

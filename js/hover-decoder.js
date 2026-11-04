@@ -1,4 +1,4 @@
-// Content script for Facebook / Messenger / VK / Telegram Web (manifest.json): while auto decoding is turned on
+// Content script for Facebook / Messenger / VK / Telegram Web / LinkedIn (manifest.json): while auto decoding is turned on
 // (context menu / hot key, off by default), decodes secret messages under the mouse pointer and shows the private
 // message after the public phrase. Pauses while the widget is shown; texts the server says are not secret messages are
 // remembered and never sent twice.
@@ -152,7 +152,7 @@ window.SecretMessageHoverDecoder = (function () {
                     parts.push(child.nodeValue);
                     if (child.nodeValue.trim()) last = child;
                 } else if (child.nodeType === Node.ELEMENT_NODE &&
-                    !child.matches(`script, style, noscript, [${DECODED_ATTRIBUTE}]`)) {
+                    !child.matches(`script, style, noscript, button, [role="button"], [${DECODED_ATTRIBUTE}]`)) {
                     walkElement(child);
                 }
             }

@@ -8,12 +8,13 @@ window.SecretMessageSites = (function () {
      * @typedef {object} Site
      * @property {RegExp} [host] Host names of the site; the generic site has none.
      * @property {string} topic Conversation topic set when the widget opens.
-     * Comments on posts (Facebook, VK), as selectors:
+     * Comments on posts (Facebook, VK, LinkedIn), as selectors:
      * @property {string} [post] A post, with its comments and the comment box.
      * @property {string} [caption] The text of a post.
      * @property {string} [comment] A comment or a reply.
      * @property {string} [commentText] The text of a comment.
      * @property {string} [author] The commenter's name in a comment; else the first link with text.
+     * @property {(comment: Element) => string} [authorName] The commenter's name, where no selector gives it alone.
      * @property {RegExp} [replyLabel] Label of a reply box opened inside the thread of the answered comment.
      * Chats (Telegram Web), as selectors:
      * @property {string} [message] A message of the open chat.
