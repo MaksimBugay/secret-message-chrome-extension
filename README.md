@@ -35,19 +35,17 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | `manifest.json` | MV3 manifest, `_execute_action` hot key, `activeTab`, content scripts for Facebook / VK / Telegram |
 | `background.js` | Icon / hot key / menu handlers, one-time script injection |
 | `js/secret-message-widget.js`, `css/secret-message-widget.css` | The widget (shadow DOM) |
-| `js/auto-decoder.js` | Content script for Facebook / VK / Telegram: starts hover decoding with the saved settings |
-| `js/hover-decoder.js` | Decodes the text under the mouse pointer and replaces it in place |
-| `js/page-context.js` | Selected text and topic (FB post / VK post / Web chat) for the current page |
+| `js/hover-decoder.js` | Content script for Facebook / VK / Telegram: decodes the text under the mouse pointer with the saved settings and replaces it in place |
 | `js/lib/secret-message.js` | Encode / decode (copy of the site's script) |
 | `js/lib/security-utils.js` | AES-GCM / PBKDF2 / SHA-256 helpers (copy of the site's script) |
 | `js/lib/secret-message-settings.js` | Encrypted settings store in the page site's IndexedDB (copy of the site's script) |
 | `js/lib/device-secret.js`, `client.min.js`, `detect.min.js` | Browser fingerprint for the owner signature (copies) |
 | `js/lib/jszip.min.js` | JSZip 3.10.1 |
-| `js/lib/secret-message-env.js` | Globals the site's bundle normally provides (`PushcaClient.clusterBaseUrl`, `stringToArrayBuffer`) |
+| `js/lib/secret-message-env.js` | Globals the site's bundle normally provides (`PushcaClient.clusterBaseUrl`, `stringToArrayBuffer`) and the settings key |
 | `images/icon-*.png` | Icons; sources in `resources/icon-src/*.svg` |
 | `_locales/*` | en, ru, uk, de, es, fr |
 
-The files in `js/lib/` are unmodified copies from `https://secure.fileshare.ovh/js/` – refresh them from there when
+Apart from `secret-message-env.js`, the files in `js/lib/` are unmodified copies from `https://secure.fileshare.ovh/js/` – refresh them from there when
 the site changes.
 
 ## Development

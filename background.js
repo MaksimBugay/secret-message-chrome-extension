@@ -1,13 +1,12 @@
 const MENU_ITEM_ID = "openSecretMessageMenuItem";
 
-// Encode / decode and hover decoding; also declared as content scripts for Facebook / VK / Telegram in manifest.json.
+// Encode / decode and settings storage; the Facebook / VK / Telegram content scripts in manifest.json load them too.
 const CORE_SCRIPTS = [
     "js/lib/secret-message-env.js",
     "js/lib/jszip.min.js",
     "js/lib/security-utils.js",
     "js/lib/secret-message.js",
-    "js/lib/secret-message-settings.js",
-    "js/hover-decoder.js"
+    "js/lib/secret-message-settings.js"
 ];
 
 // The widget, injected on icon click / hot key / menu click (activeTab grants access to the current page).
@@ -15,7 +14,6 @@ const WIDGET_SCRIPTS = [
     "js/lib/client.min.js",
     "js/lib/detect.min.js",
     "js/lib/device-secret.js",
-    "js/page-context.js",
     "js/secret-message-widget.js"
 ];
 
@@ -30,25 +28,25 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-chrome.action.onClicked.addListener((tab) => {
-    showWidget(tab).catch((error) => console.error(error));
-});
+const openWidget = (tab) => showWidget(tab).catch((error) => console.error(error));
+
+chrome.action.onClicked.addListener(openWidget);
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === MENU_ITEM_ID) {
-        showWidget(tab).catch((error) => console.error(error));
+        openWidget(tab);
     }
 });
 
 async function showWidget(tab) {
-    if (!tab || tab.id === undefined) {
+    if (tab?.id === undefined) {
         return;
     }
     const target = {tabId: tab.id};
     // The libraries declare top-level classes and constants, so they can be injected only once per page.
     const [{result: loaded}] = await chrome.scripting.executeScript({
         target,
-        func: () => ({core: Boolean(window.SecretMessageHoverDecoder), widget: Boolean(window.SecretMessagePageContext)})
+        func: () => ({core: Boolean(window.SecretMessageSettingsStore), widget: Boolean(window.SecretMessageWidget)})
     });
     if (!loaded.core) {
         await chrome.scripting.executeScript({target, files: CORE_SCRIPTS});
@@ -56,5 +54,5 @@ async function showWidget(tab) {
     if (!loaded.widget) {
         await chrome.scripting.executeScript({target, files: WIDGET_SCRIPTS});
     }
-    await chrome.tabs.sendMessage(tab.id, {action: "show-widget"});
+    await chrome.scripting.executeScript({target, func: () => SecretMessageWidget.show()});
 }

@@ -33,8 +33,7 @@
         "js/lib/security-utils.js",
         "js/lib/secret-message.js",
         "js/lib/secret-message-settings.js",
-        "js/hover-decoder.js",
-        "js/auto-decoder.js"
+        "js/hover-decoder.js"
       ],
       "run_at": "document_idle"
     }

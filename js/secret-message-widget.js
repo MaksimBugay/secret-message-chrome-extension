@@ -1,11 +1,10 @@
-// Movable, collapsible Secret Message widget injected on extension icon click.
-// Mirrors https://secure.fileshare.ovh/secret-message.html using local copies of the site's scripts:
-// secret-message.js (encode / decode), device-secret.js (owner signature) and secret-message-settings.js
+// Movable, collapsible Secret Message widget injected on extension icon click; background.js calls
+// SecretMessageWidget.show(). Mirrors https://secure.fileshare.ovh/secret-message.html using local copies of the
+// site's scripts: secret-message.js (encode), device-secret.js (owner signature) and secret-message-settings.js
 // (encrypted settings storage in the IndexedDB of the page's site, so settings survive reinstalling the extension).
-(function () {
+window.SecretMessageWidget = (function () {
     'use strict';
 
-    const SETTINGS_PAGE = '/secret-message.html';
     const STATE_KEY = 'secretMessageWidgetState';
     const HISTORY_LIMIT = 1500;
     const EDGE_MARGIN = 12;
@@ -33,10 +32,14 @@
         'Entertainment', 'Plans'];
     const STYLES = ['Casual', 'Friendly', 'Formal', 'Professional', 'Humorous', 'Romantic', 'Supportive', 'Direct',
         'Curious', 'Storytelling'];
-    const LOCALES = [['en', 'English'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'], ['pt', 'Portuguese'],
-        ['ru', 'Russian'], ['zh', 'Chinese'], ['ja', 'Japanese'], ['ar', 'Arabic'], ['hi', 'Hindi']];
+    const LOCALES = ['en', 'es', 'fr', 'de', 'pt', 'ru', 'zh', 'ja', 'ar', 'hi'];
+    const RUN_LABEL = 'Encode message →';
 
-    const options = (values) => values.map((value) => `<option value="${value}">${value}</option>`).join('');
+    const localeLabel = (code) => `${new Intl.DisplayNames(['en'], {type: 'language'}).of(code)} (${code})`;
+    const options = (values, label = (value) => value) =>
+        values.map((value) => `<option value="${value}">${label(value)}</option>`).join('');
+    const messageCount = (count) => `${count} ${count === 1 ? 'message' : 'messages'}`;
+    const removedNote = (removed) => (removed ? ` Removed ${removed} oldest ${removed === 1 ? 'message' : 'messages'}.` : '');
 
     const TEMPLATE = `
 <div class="smw" role="dialog" aria-label="Secret Message">
@@ -49,7 +52,7 @@
     </div>
   </header>
   <form class="smw-body" data-ref="form" novalidate>
-    <div class="smw-mode smw-icon-tabs" role="radiogroup" aria-label="View">
+    <div class="smw-tabs smw-icon-tabs" role="radiogroup" aria-label="View">
       <label title="Derivation – turn your private message into a public phrase"><input type="radio" name="tab" value="derivation" aria-label="Derivation" checked><span>${ICONS.derivation}</span></label>
       <label title="Settings"><input type="radio" name="tab" value="settings" aria-label="Settings"><span>${ICONS.gear}</span></label>
     </div>
@@ -64,11 +67,11 @@
           <input type="file" data-ref="settingsFile" accept=".json,application/json" hidden>
         </div>
       </div>
-      <div class="smw-mode smw-subtabs" role="radiogroup" aria-label="Settings section">
-        <label><input type="radio" name="settingsTab" value="conversation" checked><span>Conversation details</span></label>
-        <label><input type="radio" name="settingsTab" value="encryption"><span>Encryption</span></label>
+      <div class="smw-tabs smw-subtabs" role="radiogroup" aria-label="Settings section">
+        <label><input type="radio" name="settings-tab" value="conversation" checked><span>Conversation details</span></label>
+        <label><input type="radio" name="settings-tab" value="encryption"><span>Encryption</span></label>
       </div>
-      <div data-settings-panel="conversation">
+      <div data-settings-tab-panel="conversation">
         <label class="smw-label" for="smwTopic">Topic</label>
         <div class="smw-row">
           <input id="smwTopic" data-ref="topic" maxlength="500" placeholder="Choose or type a topic" autocomplete="off">
@@ -80,14 +83,14 @@
           <select class="smw-preset" data-ref="stylePreset" title="Choose style from list"><option value="" selected disabled hidden>▾</option>${options(STYLES)}</select>
         </div>
         <label class="smw-label" for="smwLocale">Language</label>
-        <select id="smwLocale" data-ref="locale">${LOCALES.map(([code, name]) => `<option value="${code}">${name} (${code})</option>`).join('')}</select>
+        <select id="smwLocale" data-ref="locale">${options(LOCALES, localeLabel)}</select>
         <div class="smw-history-summary">
           <div><span>Message history</span><strong data-ref="historyCount">0 messages</strong></div>
           <button type="button" class="smw-secondary smw-small" data-ref="editHistory" aria-haspopup="dialog">Edit</button>
         </div>
         <label class="smw-check smw-check-block" title="Append generated public phrases to conversation history"><input data-ref="appendToHistory" type="checkbox" checked>Append generated phrases to history</label>
       </div>
-      <div data-settings-panel="encryption" hidden>
+      <div data-settings-tab-panel="encryption" hidden>
         <label class="smw-label" for="smwWorkspace">Workspace</label>
         <div class="smw-row">
           <input id="smwWorkspace" data-ref="workspace" type="text" maxlength="100" autocomplete="off" placeholder="e.g. our-private-space">
@@ -124,7 +127,7 @@
           <span class="smw-badge" data-ref="securityBadge">◈ Encrypted in your browser</span>
           <p data-ref="status" data-status role="status" aria-live="polite" hidden></p>
         </div>
-        <button type="submit" class="smw-primary" data-ref="runButton">Encode message →</button>
+        <button type="submit" class="smw-primary" data-ref="runButton">${RUN_LABEL}</button>
       </div>
 
       <div class="smw-card smw-result-card" data-ref="result" hidden>
@@ -142,7 +145,7 @@
       <div><p class="smw-eyebrow">CONVERSATION</p><h2 id="smwHistoryTitle">Message history</h2></div>
       <button type="button" class="smw-icon-button" data-ref="closeHistory" title="Close message history">${ICONS.close}</button>
     </div>
-    <p class="smw-muted smw-dialog-note">Kept only until the page is reloaded; it is never saved in the browser.</p>
+    <p class="smw-muted">Kept only until the page is reloaded; it is never saved in the browser.</p>
     <ol class="smw-history-list" data-ref="historyRows"></ol>
     <p class="smw-muted" data-ref="emptyHistory">No messages yet. Add your first note below.</p>
     <label class="smw-label" for="smwNewHistoryMessage">New message</label>
@@ -177,7 +180,7 @@
         link.rel = 'stylesheet';
         link.href = chrome.runtime.getURL('css/secret-message-widget.css');
         link.addEventListener('load', () => {
-            if (host.style.display !== 'none') clampPosition();
+            if (isShown()) clampPosition();
         });
         shadow.prepend(link);
     }
@@ -206,39 +209,39 @@
         chrome.storage.local.set({[STATE_KEY]: state}).catch(() => undefined);
     }
 
+    const isShown = () => host.style.display !== 'none';
+
+    function renderCollapsed() {
+        root.classList.toggle('smw-collapsed', state.collapsed);
+        ui.toggleCollapse.innerHTML = state.collapsed ? ICONS.expand : ICONS.collapse;
+        ui.toggleCollapse.title = state.collapsed ? 'Expand' : 'Collapse';
+    }
+
     function setCollapsed(collapsed) {
         // Keep the right edge in place so the collapsed pill stays where the widget was docked.
         const before = host.getBoundingClientRect();
         state.collapsed = collapsed;
-        root.classList.toggle('smw-collapsed', collapsed);
-        ui.toggleCollapse.innerHTML = collapsed ? ICONS.expand : ICONS.collapse;
-        ui.toggleCollapse.title = collapsed ? 'Expand' : 'Collapse';
-        if (host.style.display !== 'none' && state.left !== null) {
+        renderCollapsed();
+        if (isShown() && state.left !== null) {
             state.left += before.width - host.getBoundingClientRect().width;
         }
         clampPosition();
         saveState();
     }
 
-    // Hover decoding (Facebook, VK, Telegram) is paused while the widget is shown, expanded or collapsed.
-    function show() {
-        host.style.display = 'block';
-        clampPosition();
-        SecretMessageHoverDecoder.setPaused(true);
+    // Hover decoding (only on Facebook, VK and Telegram) is paused while the widget is shown, expanded or collapsed.
+    function setShown(shown) {
+        host.style.display = shown ? 'block' : 'none';
+        if (shown) clampPosition();
+        window.SecretMessageHoverDecoder?.setPaused(shown);
     }
 
-    function hide() {
-        host.style.display = 'none';
-        SecretMessageHoverDecoder.setPaused(false);
-    }
-
-    window.addEventListener('resize', () => {
-        if (host.style.display !== 'none') clampPosition();
-    });
-    // Keep the widget on screen when it grows (settings view, conversation details).
-    new ResizeObserver(() => {
-        if (host.style.display !== 'none') clampPosition();
-    }).observe(root);
+    const clampIfShown = () => {
+        if (isShown()) clampPosition();
+    };
+    window.addEventListener('resize', clampIfShown);
+    // Keep the widget on screen when it grows (another tab, the conversation details).
+    new ResizeObserver(clampIfShown).observe(root);
 
     // Dragging by the header; a click without movement on the collapsed header expands the widget.
     let drag = null;
@@ -272,7 +275,7 @@
     });
 
     ui.toggleCollapse.addEventListener('click', () => setCollapsed(!state.collapsed));
-    ui.close.addEventListener('click', hide);
+    ui.close.addEventListener('click', () => setShown(false));
 
     // Keep page keyboard shortcuts (Facebook, VK, Telegram) from reacting to typing inside the widget.
     ['keydown', 'keyup', 'keypress'].forEach((type) => {
@@ -284,7 +287,7 @@
     const history = [];
     let busy = true;
 
-    // Shown under the run button and at the bottom of the Settings and Conversation tabs.
+    // Shown under the run button and at the bottom of the Settings tab.
     const status = (message, error = false) => {
         ui.securityBadge.hidden = Boolean(message);
         ui.status.hidden = !message;
@@ -294,18 +297,14 @@
         }
     };
 
-    function controls() {
-        return [...form.querySelectorAll('input, button, textarea, select')];
-    }
-
     async function withLockedControls(task) {
         busy = true;
-        const all = controls();
+        const all = [...form.querySelectorAll('input, button, textarea, select')];
         const disabled = all.map((control) => control.disabled);
         all.forEach((control) => { control.disabled = true; });
         form.setAttribute('aria-busy', 'true');
         try {
-            return await task();
+            await task();
         } finally {
             busy = false;
             all.forEach((control, index) => { control.disabled = disabled[index]; });
@@ -322,20 +321,12 @@
         return {topic: details.topic, style: details.style, history: [...details.history], locale: normalized.locale};
     }
 
-    function currentConversationDetails() {
-        return readConversationDetails({topic: ui.topic.value, style: ui.style.value, history, locale: ui.locale.value});
-    }
-
     function applyConversationDetails(details) {
         const validated = readConversationDetails(details);
         ui.topic.value = validated.topic;
         ui.style.value = validated.style;
         if (![...ui.locale.options].some((option) => option.value === validated.locale)) {
-            const option = document.createElement('option');
-            option.value = validated.locale;
-            const name = new Intl.DisplayNames(['en'], {type: 'language'}).of(validated.locale);
-            option.textContent = `${name} (${validated.locale})`;
-            ui.locale.append(option);
+            ui.locale.append(new Option(localeLabel(validated.locale), validated.locale));
         }
         ui.locale.value = validated.locale;
         history.splice(0, history.length, ...validated.history);
@@ -358,7 +349,9 @@
     function currentSettings() {
         return readSettings({version: 1, workspaceId: ui.workspace.value, password: ui.password.value,
             ownerSignature: ui.ownerSignature.value, appendToHistory: ui.appendToHistory.checked,
-            publicConversationDetails: currentConversationDetails()});
+            publicConversationDetails: readConversationDetails({
+                topic: ui.topic.value, style: ui.style.value, history, locale: ui.locale.value
+            })});
     }
 
     function applySettings(settings) {
@@ -387,25 +380,18 @@
         ui.togglePassword.title = visible ? 'Hide password' : 'Show password';
     }
 
-    // Tabs: derivation (the message to encode) and settings.
-    function setTab(name) {
-        form.querySelector(`[name="tab"][value="${name}"]`).checked = true;
-        shadow.querySelectorAll('[data-tab-panel]').forEach((panel) => { panel.hidden = panel.dataset.tabPanel !== name; });
-        clampPosition();
-    }
-
-    // Settings sub-tabs: conversation details and encryption (workspace, password, owner signature).
-    function setSettingsTab(name) {
-        form.querySelector(`[name="settingsTab"][value="${name}"]`).checked = true;
-        shadow.querySelectorAll('[data-settings-panel]').forEach((panel) => {
-            panel.hidden = panel.dataset.settingsPanel !== name;
+    // Radio groups "tab" (derivation / settings) and "settings-tab" (conversation / encryption) switch the panels
+    // marked data-<group>-panel.
+    function selectTab(group, name) {
+        form.querySelector(`[name="${group}"][value="${name}"]`).checked = true;
+        form.querySelectorAll(`[data-${group}-panel]`).forEach((panel) => {
+            panel.hidden = panel.getAttribute(`data-${group}-panel`) !== name;
         });
-        clampPosition();
     }
 
     function showPasswordSettings() {
-        setTab('settings');
-        setSettingsTab('encryption');
+        selectTab('tab', 'settings');
+        selectTab('settings-tab', 'encryption');
     }
 
     function countInput() {
@@ -457,17 +443,15 @@
         });
         ui.emptyHistory.hidden = history.length > 0;
         ui.clearHistory.disabled = history.length === 0;
-        ui.historyCount.textContent = `${history.length} ${history.length === 1 ? 'message' : 'messages'}`;
+        ui.historyCount.textContent = messageCount(history.length);
     }
 
     // The text selected on the page is the conversation the public phrase should fit into.
     function addSelectionToHistory(selection) {
-        if (!selection || history[history.length - 1] === selection) return '';
+        if (!selection || history.at(-1) === selection) return '';
         const removed = appendMessageToHistory(selection);
         if (removed === null) return ` Selected text exceeds ${HISTORY_LIMIT} characters and was not added to history.`;
-        let message = ' Selected text added to history.';
-        if (removed) message += ` Removed ${removed} oldest ${removed === 1 ? 'message' : 'messages'}.`;
-        return message;
+        return ` Selected text added to history.${removedNote(removed)}`;
     }
 
     async function copyToClipboard(text) {
@@ -481,13 +465,11 @@
 
     //-----------------------event handlers---------------------------------------------------------------------------
 
-    form.querySelectorAll('[name="tab"]').forEach((input) => input.addEventListener('change', () => {
-        setTab(input.value);
-        if (input.value === 'derivation') ui.messageInput.focus();
-    }));
-    form.querySelectorAll('[name="settingsTab"]').forEach((input) => input.addEventListener('change', () => {
-        setSettingsTab(input.value);
-    }));
+    form.addEventListener('change', ({target}) => {
+        if (target.type !== 'radio') return;
+        selectTab(target.name, target.value);
+        if (target.value === 'derivation') ui.messageInput.focus();
+    });
     ui.messageInput.addEventListener('input', countInput);
     ui.clearInput.addEventListener('click', () => {
         ui.messageInput.value = '';
@@ -501,7 +483,6 @@
             picker.value = '';
         });
     }
-    ui.locale.addEventListener('change', () => { if (!ui.locale.value) ui.locale.value = 'en'; });
 
     ui.generateWorkspace.addEventListener('click', () => {
         generateWorkspace();
@@ -512,7 +493,6 @@
     ui.togglePassword.addEventListener('click', () => setPasswordVisible(ui.password.type === 'password'));
 
     ui.retrieveOwnerSignature.addEventListener('click', () => {
-        if (busy) return;
         status('Retrieving owner signature…');
         withLockedControls(async () => {
             try {
@@ -535,7 +515,7 @@
             // Message history is conversation content: it lives only in this page and is never saved.
             const settings = currentSettings();
             settings.publicConversationDetails.history = [];
-            await SecretMessageSettingsStore.save(SETTINGS_PAGE, settings);
+            await SecretMessageSettingsStore.save(SECRET_MESSAGE_SETTINGS_KEY, settings);
             status(`Obfuscation settings saved securely for ${window.location.hostname}.`);
         } catch (error) {
             status(error.message || 'Unable to save obfuscation settings in this browser.', true);
@@ -602,9 +582,7 @@
             return;
         }
         ui.newHistoryMessage.value = '';
-        ui.historyStatus.textContent = removed
-            ? `Message added. Removed ${removed} oldest ${removed === 1 ? 'message' : 'messages'}.`
-            : 'Message added.';
+        ui.historyStatus.textContent = `Message added.${removedNote(removed)}`;
         ui.newHistoryMessage.focus();
     });
     ui.clearHistory.addEventListener('click', () => {
@@ -639,8 +617,8 @@
         status('Encrypting and saving your message…');
         await withLockedControls(async () => {
             try {
-                const args = [input, ui.password.value, ui.workspace.value, ui.ownerSignature.value || null];
-                const phrase = await textToSecreteMessagePublicPhrase(...args, {
+                const phrase = await textToSecreteMessagePublicPhrase(input, ui.password.value, ui.workspace.value,
+                    ui.ownerSignature.value || null, {
                     topic: ui.topic.value, style: ui.style.value,
                     history: history.filter((message) => message.trim()), locale: ui.locale.value
                 });
@@ -657,15 +635,14 @@
                     if (removed === null) {
                         message += ` Not appended: this phrase alone exceeds ${HISTORY_LIMIT} characters.`;
                     } else {
-                        message += ' Public phrase appended to history.';
-                        if (removed) message += ` Removed ${removed} oldest ${removed === 1 ? 'message' : 'messages'}.`;
+                        message += ` Public phrase appended to history.${removedNote(removed)}`;
                     }
                 }
                 status(message);
             } catch (error) {
                 status(error.message || 'Unable to process the message. Please try again.', true);
             } finally {
-                ui.runButton.textContent = 'Encode message →';
+                ui.runButton.textContent = RUN_LABEL;
             }
         });
     });
@@ -675,22 +652,19 @@
     countInput();
     renderHistory();
 
-    SecretMessageHoverDecoder.configure({
-        credentials: () => (busy ? null : {
-            workspace: ui.workspace.value, password: ui.password.value, ownerSignature: ui.ownerSignature.value
-        })
-    });
+    window.SecretMessageHoverDecoder?.setCredentials(() => (busy ? null : {
+        workspaceId: ui.workspace.value, password: ui.password.value, ownerSignature: ui.ownerSignature.value
+    }));
 
     const ready = (async () => {
         const stored = await chrome.storage.local.get(STATE_KEY).catch(() => ({}));
         Object.assign(state, stored[STATE_KEY] || {});
-        root.classList.toggle('smw-collapsed', state.collapsed);
-        ui.toggleCollapse.innerHTML = state.collapsed ? ICONS.expand : ICONS.collapse;
+        renderCollapsed();
 
         // Lock controls until restoration completes so a late read cannot overwrite user edits.
         await withLockedControls(async () => {
             try {
-                const saved = await SecretMessageSettingsStore.load(SETTINGS_PAGE);
+                const saved = await SecretMessageSettingsStore.load(SECRET_MESSAGE_SETTINGS_KEY);
                 // Ignore history kept by earlier versions; every page load starts with an empty history.
                 if (saved !== null) {
                     applySettings({...saved, publicConversationDetails: {...saved.publicConversationDetails, history: []}});
@@ -700,21 +674,34 @@
             }
         });
         if (!ui.workspace.value) generateWorkspace();
-        if (!ui.password.value) showPasswordSettings();
     })();
 
-    chrome.runtime.onMessage.addListener((request) => {
-        if (request.action !== 'show-widget') return;
-        ready.then(() => {
-            const selection = SecretMessagePageContext.selection();
-            show();
-            if (state.collapsed) setCollapsed(false);
-            ui.topic.value = SecretMessagePageContext.topic();
-            status(`Topic set to “${ui.topic.value}”.${addSelectionToHistory(selection)}`);
-            // Without a password nothing can be encoded, so open on the Settings tab.
-            if (ui.password.value) setTab('derivation');
-            else showPasswordSettings();
-            (ui.password.value ? ui.messageInput : ui.password).focus();
-        });
+    // The kind of conversation the public phrase should fit into.
+    function pageTopic() {
+        const hostname = window.location.hostname;
+        if (/(^|\.)facebook\.com$/i.test(hostname)) return 'FB post';
+        if (/(^|\.)vk\.(com|ru)$/i.test(hostname)) return 'VK post';
+        return 'Web chat';
+    }
+
+    return Object.freeze({
+        // Icon click / hot key / menu: the text selected on the page goes to the history, the topic follows the site.
+        show() {
+            const selection = window.getSelection()?.toString().trim() ?? '';
+            ready.then(() => {
+                setShown(true);
+                if (state.collapsed) setCollapsed(false);
+                ui.topic.value = pageTopic();
+                status(`Topic set to “${ui.topic.value}”.${addSelectionToHistory(selection)}`);
+                // Without a password nothing can be encoded, so open on the Settings tab.
+                if (ui.password.value) {
+                    selectTab('tab', 'derivation');
+                    ui.messageInput.focus();
+                } else {
+                    showPasswordSettings();
+                    ui.password.focus();
+                }
+            });
+        }
     });
 })();

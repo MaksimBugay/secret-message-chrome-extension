@@ -1,6 +1,6 @@
-// Decodes secret messages under the mouse pointer and replaces the public phrase with the original text.
-// Runs on pages where js/auto-decoder.js enables it and pauses while the widget is shown; texts that are not secret
-// messages are remembered and never sent twice.
+// Content script for Facebook / Messenger / VK / Telegram Web (manifest.json): from page load, decodes secret messages
+// under the mouse pointer and replaces the public phrase with the original text. Pauses while the widget is shown;
+// texts that are not secret messages are remembered and never sent twice.
 window.SecretMessageHoverDecoder = (function () {
     const HOVER_DELAY = 400;
     const MIN_LENGTH = 12;
@@ -11,9 +11,10 @@ window.SecretMessageHoverDecoder = (function () {
     const REQUEST_INTERVAL = 1000;
     const DECODED_PREFIX = '🔓 ';
 
-    let started = false;
     let paused = false;
-    let options = {credentials: () => null};
+    // Settings saved for this site, until the widget provides its own (possibly unsaved) ones.
+    let saved = null;
+    let credentials = () => saved;
     let timer = null;
     let pendingPoint = null;
     let running = false;
@@ -23,19 +24,26 @@ window.SecretMessageHoverDecoder = (function () {
     const checked = new Map();
     const decodedElements = new WeakSet();
 
-    const enabled = () => started && !paused;
+    async function loadSaved() {
+        try {
+            saved = await SecretMessageSettingsStore.load(SECRET_MESSAGE_SETTINGS_KEY);
+        } catch (_) {
+            saved = null;
+        }
+    }
 
+    /** @returns {{workspaceId: string, password: string, ownerSignature: string}|null} */
     function currentCredentials() {
-        const credentials = options.credentials();
-        if (!credentials || !credentials.workspace?.trim() || !credentials.password) {
+        const current = credentials();
+        if (!current || !current.workspaceId?.trim() || !current.password) {
             return null;
         }
-        const key = JSON.stringify([credentials.workspace, credentials.password, credentials.ownerSignature]);
+        const key = JSON.stringify([current.workspaceId, current.password, current.ownerSignature]);
         if (key !== credentialsKey) {
             credentialsKey = key;
             checked.clear();
         }
-        return credentials;
+        return current;
     }
 
     function textNodeAt(x, y) {
@@ -116,7 +124,7 @@ window.SecretMessageHoverDecoder = (function () {
             .replace(/ ?\n ?/g, '\n')
             .replace(/\n{2,}/g, '\n')
             .trim();
-        return {element: block, nodes, images, text};
+        return {element: block, inlineOnly, nodes, images, text};
     }
 
     // The whole block first (a post paragraph, a chat bubble); then only its inline content.
@@ -133,7 +141,7 @@ window.SecretMessageHoverDecoder = (function () {
         return candidates.filter((candidate) => candidate.text.length >= MIN_LENGTH && candidate.text.length <= MAX_LENGTH);
     }
 
-    async function decode(text, credentials) {
+    async function decode(text, current) {
         if (checked.has(text)) {
             return checked.get(text);
         }
@@ -145,8 +153,8 @@ window.SecretMessageHoverDecoder = (function () {
         lastRequestAt = Date.now();
         let message = null;
         try {
-            message = await secreteMessagePublicPhraseToText(text, credentials.password, credentials.workspace,
-                credentials.ownerSignature || null);
+            message = await secreteMessagePublicPhraseToText(text, current.password, current.workspaceId,
+                current.ownerSignature || null);
         } catch (_) {
             // Not a secret message for these credentials.
         }
@@ -160,11 +168,7 @@ window.SecretMessageHoverDecoder = (function () {
     // Text node values change and emoji images are hidden, so pages rendered by React keep their DOM structure.
     function replaceText(candidate, message) {
         const [first, ...rest] = candidate.nodes;
-        let target = first;
-        if (!target) {
-            target = document.createTextNode('');
-            candidate.images[0].before(target);
-        }
+        const target = first ?? candidate.images[0].parentNode.insertBefore(document.createTextNode(''), candidate.images[0]);
         target.nodeValue = DECODED_PREFIX + message;
         rest.forEach((node) => { node.nodeValue = ''; });
         candidate.images.forEach((image) => { image.style.display = 'none'; });
@@ -178,20 +182,19 @@ window.SecretMessageHoverDecoder = (function () {
     }
 
     async function processPoint({x, y}) {
-        const credentials = currentCredentials();
-        const node = credentials && textNodeAt(x, y);
+        const current = currentCredentials();
+        const node = current && textNodeAt(x, y);
         if (!node) {
             return;
         }
         for (const candidate of candidatesAt(node)) {
-            const message = await decode(candidate.text, credentials);
+            const message = await decode(candidate.text, current);
             if (message === null) {
                 continue;
             }
             // The widget may have been opened, or the page may have re-rendered the element, during the request.
-            const inlineOnly = candidate.text !== contentOf(candidate.element, false).text;
-            if (enabled() && candidate.element.isConnected &&
-                contentOf(candidate.element, inlineOnly).text === candidate.text) {
+            if (!paused && candidate.element.isConnected &&
+                contentOf(candidate.element, candidate.inlineOnly).text === candidate.text) {
                 replaceText(candidate, message);
             }
             return;
@@ -205,7 +208,7 @@ window.SecretMessageHoverDecoder = (function () {
         }
         running = true;
         try {
-            while (pendingPoint && enabled()) {
+            while (pendingPoint && !paused) {
                 const next = pendingPoint;
                 pendingPoint = null;
                 await processPoint(next);
@@ -215,20 +218,21 @@ window.SecretMessageHoverDecoder = (function () {
         }
     }
 
+    loadSaved();
+    // Settings may have been saved in another tab in the meantime.
+    window.addEventListener('focus', loadSaved);
+
     document.addEventListener('mousemove', (event) => {
-        if (!enabled()) return;
+        if (paused) return;
         clearTimeout(timer);
         timer = setTimeout(() => schedule({x: event.clientX, y: event.clientY}), HOVER_DELAY);
     }, {capture: true, passive: true});
 
     return Object.freeze({
-        /** @param {{credentials: function(): ({workspace: string, password: string, ownerSignature: string}|null)}} config */
-        configure(config) {
-            options = {...options, ...config};
-        },
-        // Called by js/auto-decoder.js on Facebook / VK / Telegram page load.
-        start() {
-            started = true;
+        // Called by the widget: from then on its current fields are used instead of the saved settings.
+        setCredentials(provider) {
+            credentials = provider;
+            window.removeEventListener('focus', loadSaved);
         },
         // Paused while the widget is shown (expanded or collapsed), so it does not change text the user is working with.
         setPaused(value) {

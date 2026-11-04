@@ -5,3 +5,6 @@ var PushcaClient = {clusterBaseUrl: 'https://secure.fileshare.ovh'};
 function stringToArrayBuffer(str) {
     return new TextEncoder().encode(str).buffer;
 }
+
+// Key of the obfuscation settings in SecretMessageSettingsStore: the Secret Message page path, as on the web site.
+const SECRET_MESSAGE_SETTINGS_KEY = '/secret-message.html';

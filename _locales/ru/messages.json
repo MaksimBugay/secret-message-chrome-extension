@@ -12,6 +12,6 @@
     "message": "Открыть Secret Message"
   },
   "menuTitle": {
-    "message": "Зашифровать или расшифровать сообщение (Ctrl+Shift+Y)"
+    "message": "Зашифровать секретное сообщение (Ctrl+Shift+Y)"
   }
 }

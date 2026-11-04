@@ -12,6 +12,6 @@
     "message": "Secret Message öffnen"
   },
   "menuTitle": {
-    "message": "Geheime Nachricht ver- oder entschlüsseln (Strg+Umschalt+Y)"
+    "message": "Geheime Nachricht verschlüsseln (Strg+Umschalt+Y)"
   }
 }

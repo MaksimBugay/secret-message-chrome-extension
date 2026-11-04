@@ -12,6 +12,6 @@
     "message": "Ouvrir Secret Message"
   },
   "menuTitle": {
-    "message": "Chiffrer ou déchiffrer un message secret (Ctrl+Maj+Y)"
+    "message": "Chiffrer un message secret (Ctrl+Maj+Y)"
   }
 }
