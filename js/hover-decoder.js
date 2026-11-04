@@ -255,7 +255,10 @@ window.SecretMessageHoverDecoder = (function () {
         span.title = 'Decoded by Secret Message';
         span.style.cssText = DECODED_STYLE;
         span.append(magicEye(), message);
-        candidate.last.after(span);
+        // After the emoji's wrapper, not inside it: Facebook's is a 16 px box that would squeeze the message to nothing.
+        let anchor = candidate.last;
+        while (anchor.parentElement !== candidate.element && isEmoji(anchor.parentElement)) anchor = anchor.parentElement;
+        anchor.after(span);
     }
 
     async function processPoint({x, y}) {
