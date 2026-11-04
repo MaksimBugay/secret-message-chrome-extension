@@ -107,12 +107,13 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 
 //-----------------------widget-----------------------------------------------------------------------------------------
 
-// The help and privacy buttons of the widget.
-const DOCS = {help: "docs/help.html", privacy: "docs/privacy.html"};
+// The help and privacy buttons of the widget. The privacy policy is on the web site, where the Chrome Web Store listing
+// links to it too.
+const DOCS = {help: chrome.runtime.getURL("docs/help.html"), privacy: "https://secure.fileshare.ovh/privacy/secret-message-privacy.html"};
 
 chrome.runtime.onMessage.addListener((message) => {
     if (message?.type === "openDoc" && Object.hasOwn(DOCS, message.page)) {
-        chrome.tabs.create({url: chrome.runtime.getURL(DOCS[message.page])});
+        chrome.tabs.create({url: DOCS[message.page]});
     }
 });
 

@@ -2,10 +2,14 @@
 // captured, then encoded with ffmpeg when it is installed, else with Chrome's own MediaRecorder (H.264 MP4).
 //   node render.mjs                     the video
 //   node render.mjs --preview 6.6,26    single frames, as preview-<t>.png in the frames folder
+//   node render.mjs --store             Chrome Web Store screenshots (1280×800) and the promo tile (440×280, tile.html)
+//                                       in ../../store
+import {Buffer} from 'node:buffer';
 import {spawn, spawnSync} from 'node:child_process';
 import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
+import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -18,6 +22,10 @@ const output = join(here, '..', 'secret-message-promo.mp4');
 const framesDir = join(here, 'frames');
 const previewArg = process.argv.indexOf('--preview');
 const previews = previewArg > -1 ? process.argv[previewArg + 1].split(',').map(Number) : null;
+const store = process.argv.includes('--store');
+const storeDir = join(here, '..', '..', 'store');
+// Screenshot name -> moment of the video: pinning, settings, converting, the public phrase, the decoded message.
+const STORE_SHOTS = {'1-pin': 8.7, '2-settings': 16.3, '3-convert': 25.2, '4-public-phrase': 27.2, '5-decoded': 37.5};
 
 // promo.html with the extension's logo, read from the widget so it stays the same.
 const widget = readFileSync(join(here, '..', '..', '..', 'js', 'secret-message-widget.js'), 'utf8');
@@ -25,6 +33,8 @@ const logo = widget.match(/logo: '(<svg.*?<\/svg>)'/)[1];
 const page = join(here, 'frames', 'promo.html');
 mkdirSync(framesDir, {recursive: true});
 writeFileSync(page, readFileSync(join(here, 'promo.html'), 'utf8').replace('%LOGO%', logo));
+// Opened in place: it loads the widget from the repository by relative paths.
+const tile = join(here, 'tile.html');
 
 const profile = mkdtempSync(join(tmpdir(), 'promo-chrome-'));
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, '--hide-scrollbars',
@@ -65,11 +75,18 @@ async function evaluate(expression) {
     return result.result.value;
 }
 
-try {
-    await call('Emulation.setDeviceMetricsOverride', {width: WIDTH, height: HEIGHT, deviceScaleFactor: 1, mobile: false});
-    await call('Page.navigate', {url: `file://${page}`});
+async function open(url, width, height) {
+    await call('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: false});
+    await call('Page.navigate', {url});
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await evaluate('document.fonts.ready.then(() => true)');
+}
+
+// JPEG: the store takes no images with an alpha channel. A clip scales the page to the image size.
+const screenshot = async (clip) => Buffer.from((await call('Page.captureScreenshot', {format: 'jpeg', quality: 95, clip})).data, 'base64');
+
+try {
+    await open(`file://${page}${store ? '?height=800' : ''}`, WIDTH, store ? 800 : HEIGHT);
     const duration = await evaluate('window.DURATION');
 
     const capture = async (t, format) => {
@@ -77,7 +94,18 @@ try {
         return (await call('Page.captureScreenshot', {format, quality: format === 'jpeg' ? 92 : undefined})).data;
     };
 
-    if (previews) {
+    if (store) {
+        mkdirSync(storeDir, {recursive: true});
+        for (const [name, t] of Object.entries(STORE_SHOTS)) {
+            await evaluate(`render(${t})`);
+            writeFileSync(join(storeDir, `screenshot-${name}.jpg`), await screenshot());
+        }
+        // Laid out at 620×395, so the widget keeps its own size, then scaled to 440×280.
+        await open(`file://${tile}`, 620, 395);
+        writeFileSync(join(storeDir, 'promo-tile-440x280.jpg'), await screenshot({x: 0, y: 0, width: 620, height: 280 * 620 / 440, scale: 440 / 620}));
+        rmSync(framesDir, {recursive: true, force: true});
+        console.log('store images in', storeDir);
+    } else if (previews) {
         for (const t of previews) writeFileSync(join(framesDir, `preview-${t}.png`), Buffer.from(await capture(t, 'png'), 'base64'));
         console.log('previews in', framesDir);
     } else {

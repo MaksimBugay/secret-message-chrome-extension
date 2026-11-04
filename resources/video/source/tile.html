@@ -1,0 +1,58 @@
+<!doctype html>
+<!-- Chrome Web Store small promo tile with the real widget (the extension's own script and styles). Laid out at 620×395 so the widget has its own size; render.mjs --store scales the screenshot down to
+     440×280 and saves it as ../../store/promo-tile-440x280.jpg. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Secret Message tile</title>
+<style>
+    * { box-sizing: border-box; margin: 0; }
+    html, body { width: 620px; height: 395px; overflow: hidden; }
+    body { color: #e8eef7; font: 400 16px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(circle at 10% 15%, #3473ce66, transparent 55%), radial-gradient(circle at 95% 95%, #7c4dff77, transparent 55%), #0d1420; }
+    .pitch { position: absolute; left: 26px; top: 0; bottom: 0; width: 180px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+    h1 { font-size: 31px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; }
+    h1 em { font-style: normal; color: #a78bfa; }
+    .sites { color: #93a4bb; font-size: 15px; line-height: 1.5; }
+</style>
+<script>
+    // The widget's shadow root is closed; keep it here to fill in the sample message.
+    let widgetShadow = null;
+    const attachShadow = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (options) {
+        const shadow = attachShadow.call(this, options);
+        if (this.localName === 'secret-message-widget') widgetShadow = shadow;
+        return shadow;
+    };
+    Object.defineProperty(window, 'chrome', {configurable: true, value: {
+        runtime: {getURL: (path) => `../../../${path}`, sendMessage: async () => undefined},
+        storage: {local: {get: async () => ({secretMessageWidgetState: {left: 222, top: 14, collapsed: false}}), set: async () => undefined}}
+    }});
+</script>
+<script src="../../../js/lib/secret-message-env.js"></script>
+<script src="../../../js/lib/secret-message-settings.js"></script>
+<script src="../../../js/sites/sites.js"></script>
+<script src="../../../js/conversation-context.js"></script>
+<script src="../../../js/secret-message-widget.js"></script>
+</head>
+<body>
+    <div class="pitch">
+        <h1>Hide a <em>private message</em> in any comment</h1>
+        <div class="sites">Facebook · VK · LinkedIn<br>Telegram Web · any site</div>
+    </div>
+<script>
+    SecretMessageWidget.show();
+    setTimeout(() => {
+        const shadow = widgetShadow;
+        shadow.querySelector('[name="tab"][value="derivation"]').click();
+        const input = shadow.querySelector('#smwMessageInput');
+        input.value = "Can't talk here — meet me at 7 by the old bridge";
+        input.dispatchEvent(new Event('input'));
+        const status = shadow.querySelector('[data-ref="status"]');
+        status.hidden = false;
+        status.textContent = 'Public phrase copied to the clipboard.';
+        shadow.querySelector('[data-ref="securityBadge"]').hidden = true;
+    }, 600);
+</script>
+</body>
+</html>

@@ -6,9 +6,11 @@
 <title>Secret Message promo</title>
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 1280px; height: 720px; overflow: hidden; background: #0d1420; }
+    /* ?height=800 for the Chrome Web Store screenshots (render.mjs --store). */
+    :root { --height: 720px; }
+    html, body { width: 1280px; height: var(--height); overflow: hidden; background: #0d1420; }
     body { font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #050505; }
-    #stage { position: relative; width: 1280px; height: 720px; overflow: hidden; }
+    #stage { position: relative; width: 1280px; height: var(--height); overflow: hidden; }
     .layer { position: absolute; inset: 0; }
     .logo svg { display: block; width: 100%; height: 100%; }
 
@@ -18,7 +20,7 @@
     .hero .logo { width: 120px; height: 120px; filter: drop-shadow(0 12px 40px #7c4dff88); }
     .hero h1 { font-size: 64px; font-weight: 800; letter-spacing: -1px; }
     .hero p { font-size: 26px; color: #b9c7da; }
-    .hero .sites { margin-top: 10px; font-size: 18px; color: #93a4bb; letter-spacing: .5px; }
+    .hero .sites { margin-top: 10px; font-size: 18px; color: #93a4bb; letter-spacing: .03em; }
     .hero ul { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 12px; font-size: 24px; color: #dbe5f3; }
     .hero li span { display: inline-block; width: 40px; }
 
@@ -74,9 +76,9 @@
     .composer { display: flex; gap: 8px; align-items: center; }
     .composer .avatar { width: 32px; height: 32px; }
     #box { flex: 1; min-height: 38px; border-radius: 19px; background: #f0f2f5; padding: 9px 14px; font-size: 15px; color: #050505; }
-    #box.empty { color: #65676b; }
-    #box.focused { box-shadow: 0 0 0 2px #1877f255; }
-    #caret { display: inline-block; width: 1.5px; height: 18px; background: #050505; vertical-align: -3px; margin-left: 1px; }
+    #box[data-empty] { color: #65676b; }
+    #box[data-focused] { box-shadow: 0 0 0 2px #1877f255; }
+    #caret { display: inline-block; width: 2px; height: 18px; background: #050505; vertical-align: -3px; margin-left: 1px; }
 
     /*---------------------------------------- Chrome extensions menu ----------------------------------------*/
     #extmenu { position: absolute; top: 76px; right: 52px; width: 330px; background: #fff; border-radius: 10px; box-shadow: 0 6px 24px #0004, 0 0 0 1px #0001; padding: 12px 0; transform-origin: top right; }
@@ -87,7 +89,7 @@
     .ext-row .name { flex: 1; }
     .ext-row .pin { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #5f6368; }
     .ext-row .pin svg { width: 18px; height: 18px; }
-    .ext-row.hl { background: #e8f0fe; }
+    .ext-row[data-highlighted] { background: #e8f0fe; }
     .menu-foot { border-top: 1px solid #e8eaed; margin-top: 6px; padding: 10px 16px 0; font-size: 14px; color: #3c4043; }
 
     /*---------------------------------------- the extension's widget and toast ----------------------------------------*/
@@ -104,8 +106,8 @@
     .w-sub { display: flex; gap: 6px; } .w-sub span { padding: 5px 10px; border-radius: 8px; background: #131d2e; color: #93a4bb; }
     .w-sub span.on { background: #26364f; color: #e8eef7; }
     .w-label { color: #93a4bb; font-size: 12px; margin-top: 4px; }
-    .w-field { height: 34px; border-radius: 9px; background: #0a111c; border: 1px solid #26364f; padding: 0 10px; display: flex; align-items: center; font-size: 13px; letter-spacing: .3px; }
-    .w-field.focus { border-color: #3473ce; box-shadow: 0 0 0 3px #3473ce44; }
+    .w-field { height: 34px; border-radius: 9px; background: #0a111c; border: 1px solid #26364f; padding: 0 10px; display: flex; align-items: center; font-size: 13px; letter-spacing: .02em; }
+    .w-field[data-focused] { border-color: #3473ce; box-shadow: 0 0 0 3px #3473ce44; }
     .w-status { color: #8fd6b5; font-size: 12px; min-height: 16px; }
     #toast { position: absolute; display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; background: #0d1420; border: 1px solid #3a4f70; border-radius: 12px;
         box-shadow: 0 10px 28px rgba(3, 8, 18, .5); color: #e8eef7; font-size: 14px; white-space: nowrap; }
@@ -121,7 +123,7 @@
         background: rgba(13, 20, 32, .9); box-shadow: 0 16px 40px #0007; color: #fff; font-size: 26px; font-weight: 700; }
     #keys kbd { font: inherit; min-width: 64px; padding: 10px 16px; text-align: center; border-radius: 12px; background: linear-gradient(#2a3a55, #1a2639); border: 1px solid #4a628a;
         box-shadow: 0 5px 0 #0a111c; }
-    #keys kbd.down { transform: translateY(4px); box-shadow: 0 1px 0 #0a111c; background: linear-gradient(#3b5bd6, #7c4dff); }
+    #keys kbd[data-pressed] { transform: translateY(4px); box-shadow: 0 1px 0 #0a111c; background: linear-gradient(#3b5bd6, #7c4dff); }
     #keys small { display: block; }
     #cursor { position: absolute; left: 0; top: 0; width: 26px; height: 32px; pointer-events: none; filter: drop-shadow(0 2px 3px #0006); }
     #ripple { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 3px solid #7c4dff; }
@@ -209,6 +211,8 @@
 
 <script>
 const LOGO = '%LOGO%';
+const HEIGHT = Number(new URLSearchParams(location.search).get('height')) || 720;
+document.documentElement.style.setProperty('--height', `${HEIGHT}px`);
 document.querySelectorAll('.logo').forEach((element, index) => {
     // Gradient ids must be unique in the document.
     element.innerHTML = LOGO.replaceAll('smwBg', `smwBg${index}`);
@@ -235,7 +239,7 @@ const CAPTIONS = [
 const CURSOR = [
     [4.5, [760, 470]], [5.4, [760, 470]], [6.4, '#puzzle'], [7.1, '#puzzle'], [8.1, '#pin'], [8.9, '#pin'], [9.6, [900, 300]],
     [12.9, [900, 300]], [13.8, '#pinned'], [14.3, '#pinned'], [15.1, '#wpass'], [16.9, '#wpass'], [17.5, '#wsave'], [18.4, '#wsave'], [19.0, '#wclose'],
-    [19.4, '#wclose'], [20.3, '#box'], [23.9, '#box'], [24.6, [1040, 560]], [33.6, [1040, 560]], [35.0, '#postedText'], [42, '#postedText']
+    [19.4, '#wclose'], [20.3, '#box'], [23.9, '#box'], [24.6, [1040, 560]], [33.6, [1040, 560]], [35.0, '#posted b'], [42, '#posted b']
 ];
 const CLICKS = [6.5, 8.4, 9.7, 13.9, 15.2, 17.6, 19.1, 20.4];
 
@@ -244,11 +248,12 @@ const progress = (t, a, b) => clamp((t - a) / (b - a));
 const ease = (x) => (x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
 // 0 → 1 between a and b, back to 0 between c and d.
 const window_ = (t, a, b, c, d) => Math.min(progress(t, a, b), 1 - progress(t, c, d));
-const $ = (selector) => document.querySelector(selector);
+// The elements with an id, found once: render(t) runs for every frame.
+const el = Object.fromEntries([...document.querySelectorAll('[id]')].map((element) => [element.id, element]));
 
 function centerOf(target) {
     if (Array.isArray(target)) return {x: target[0], y: target[1]};
-    const rect = $(target).getBoundingClientRect();
+    const rect = document.querySelector(target).getBoundingClientRect();
     return {x: rect.left + Math.min(rect.width / 2, 60), y: rect.top + rect.height / 2};
 }
 
@@ -278,107 +283,96 @@ function scramble(from, to, k) {
 }
 
 function keys(t, start, end, labels, pressAt) {
-    const el = $('#keys');
     const k = window_(t, start, start + .25, end - .25, end);
-    el.style.opacity = k;
-    el.style.transform = `translateX(-50%) scale(${.92 + .08 * k})`;
-    if (k > 0) el.innerHTML = labels.map((label) => `<kbd class="${t >= pressAt && t < pressAt + .5 ? 'down' : ''}">${label}</kbd>`).join('<span>+</span>');
+    el.keys.style.opacity = k;
+    el.keys.style.transform = `translateX(-50%) scale(${.92 + .08 * k})`;
+    const pressed = t >= pressAt && t < pressAt + .5 ? ' data-pressed' : '';
+    if (k > 0) el.keys.innerHTML = labels.map((label) => `<kbd${pressed}>${label}</kbd>`).join('<span>+</span>');
 }
 
 function render(t) {
     // Scenes.
-    $('#intro').style.opacity = 1 - progress(t, 4, 4.6);
-    $('#browser').style.opacity = window_(t, 4, 4.6, 42, 42.6);
-    $('#outro').style.opacity = progress(t, 42, 42.6);
+    el.intro.style.opacity = 1 - progress(t, 4, 4.6);
+    el.browser.style.opacity = window_(t, 4, 4.6, 42, 42.6);
+    el.outro.style.opacity = progress(t, 42, 42.6);
 
     // Pinning.
     const menu = window_(t, 6.6, 6.8, 9.7, 9.85);
-    $('#extmenu').style.opacity = menu;
-    $('#extmenu').style.transform = `scale(${.95 + .05 * menu})`;
-    $('#extrow').classList.toggle('hl', t > 7.8 && t < 9.7);
+    el.extmenu.style.opacity = menu;
+    el.extmenu.style.transform = `scale(${.95 + .05 * menu})`;
+    el.extrow.toggleAttribute('data-highlighted', t > 7.8 && t < 9.7);
     const pinned = t >= 8.45;
-    $('#pinpath').setAttribute('fill', pinned ? '#1a73e8' : 'none');
-    $('#pin').style.color = pinned ? '#1a73e8' : '#5f6368';
+    el.pinpath.setAttribute('fill', pinned ? '#1a73e8' : 'none');
+    el.pin.style.color = pinned ? '#1a73e8' : '#5f6368';
     const pop = progress(t, 8.5, 8.8);
-    $('#pinned').style.display = pop > 0 ? 'grid' : 'none';
-    $('#pinned').style.transform = `scale(${pop < 1 ? .3 + 1.0 * ease(pop) : 1})`;
-    const ring = window_(t, 9.9, 10.2, 12.3, 12.7);
-    const pinnedRect = $('#pinned').getBoundingClientRect();
+    el.pinned.style.display = pop > 0 ? 'grid' : 'none';
+    el.pinned.style.transform = `scale(${pop < 1 ? .3 + 1.0 * ease(pop) : 1})`;
+    const pinnedRect = el.pinned.getBoundingClientRect();
     const ringSize = 44 + 10 * Math.sin((t - 9.9) * 6) ** 2;
-    Object.assign($('#ring').style, {opacity: ring, width: `${ringSize}px`, height: `${ringSize}px`,
+    Object.assign(el.ring.style, {opacity: window_(t, 9.9, 10.2, 12.3, 12.7), width: `${ringSize}px`, height: `${ringSize}px`,
         left: `${pinnedRect.left + pinnedRect.width / 2 - ringSize / 2}px`, top: `${pinnedRect.top + pinnedRect.height / 2 - ringSize / 2}px`});
 
     // Settings.
     const widget = window_(t, 14.0, 14.25, 19.15, 19.35);
-    $('#widget').style.opacity = widget;
-    $('#widget').style.transform = `translateY(${(1 - widget) * 10}px)`;
-    $('#wpass').classList.toggle('focus', t > 15.2 && t < 17.5);
-    $('#wpass').textContent = PASSWORD_DOTS.slice(0, Math.round(progress(t, 15.4, 16.6) * PASSWORD_DOTS.length));
-    $('#wstatus').textContent = t > 17.7 ? '✓ Obfuscation settings saved securely for www.facebook.com.' : '';
+    el.widget.style.opacity = widget;
+    el.widget.style.transform = `translateY(${(1 - widget) * 10}px)`;
+    el.wpass.toggleAttribute('data-focused', t > 15.2 && t < 17.5);
+    el.wpass.textContent = PASSWORD_DOTS.slice(0, Math.round(progress(t, 15.4, 16.6) * PASSWORD_DOTS.length));
+    el.wstatus.textContent = t > 17.7 ? '✓ Obfuscation settings saved securely for www.facebook.com.' : '';
 
     // Comment box: type, convert, post.
-    const box = $('#box');
-    const typed = PRIVATE.slice(0, Math.round(progress(t, 20.7, 23.7) * PRIVATE.length));
-    let text = typed;
+    let text = PRIVATE.slice(0, Math.round(progress(t, 20.7, 23.7) * PRIVATE.length));
     if (t >= 25.8) text = scramble(PRIVATE, PHRASE, progress(t, 25.8, 26.6));
     if (t >= 28.25) text = '';
     const focused = t > 20.4 && t < 28.25;
-    box.classList.toggle('focused', focused);
-    box.classList.toggle('empty', !text);
+    el.box.toggleAttribute('data-focused', focused);
+    el.box.toggleAttribute('data-empty', !text);
     const caret = focused && (Math.floor(t * 2.2) % 2 === 0 || (t > 20.7 && t < 23.7)) ? '<span id="caret"></span>' : '';
-    box.innerHTML = (text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;') : (focused ? '' : 'Write a public comment…')) + caret;
+    el.box.innerHTML = (text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;') : (focused ? '' : 'Write a public comment…')) + caret;
 
     // Posted comment and its decoded private message.
-    const posted = $('#posted');
-    $('#postedText').textContent = PHRASE;
+    el.postedText.textContent = PHRASE;
     const decoded = progress(t, 36.4, 36.9);
-    const decodedEl = $('#decoded');
-    decodedEl.innerHTML = decoded > 0 ? EYE + PRIVATE : '';
-    decodedEl.style.opacity = decoded;
-    posted.style.height = 'auto';
-    const full = posted.scrollHeight;
-    posted.style.height = `${full * ease(progress(t, 28.25, 28.6))}px`;
-    posted.style.opacity = progress(t, 28.25, 28.5);
+    el.decoded.innerHTML = decoded > 0 ? EYE + PRIVATE : '';
+    el.decoded.style.opacity = decoded;
+    el.posted.style.height = 'auto';
+    el.posted.style.height = `${el.posted.scrollHeight * ease(progress(t, 28.25, 28.6))}px`;
+    el.posted.style.opacity = progress(t, 28.25, 28.5);
     // Keep the comments in view as they grow.
-    $('#page').style.transform = `translateY(${-ease(progress(t, 28.3, 28.9)) * 70 - ease(progress(t, 36.4, 36.9)) * 30}px)`;
+    el.page.style.transform = `translateY(${-ease(progress(t, 28.3, 28.9)) * 70 - ease(progress(t, 36.4, 36.9)) * 30}px)`;
 
     // Toast above the comment box.
-    const toast = $('#toast');
-    const toastOn = window_(t, 24.45, 24.65, 27.6, 27.9);
-    toast.style.opacity = toastOn;
-    $('#spin').style.display = t < 25.8 ? 'block' : 'none';
-    $('#spin').style.transform = `rotate(${t * 720}deg)`;
-    $('#toastText').textContent = t < 25.8 ? 'Encrypting your message…' : 'Replaced with the public phrase. Post caption added to history.';
-    const boxRect = box.getBoundingClientRect();
-    toast.style.left = `${boxRect.left}px`;
-    toast.style.top = `${boxRect.top - 52}px`;
+    el.toast.style.opacity = window_(t, 24.45, 24.65, 27.6, 27.9);
+    el.spin.style.display = t < 25.8 ? 'block' : 'none';
+    el.spin.style.transform = `rotate(${t * 720}deg)`;
+    el.toastText.textContent = t < 25.8 ? 'Encrypting your message…' : 'Replaced with the public phrase. Post caption added to history.';
+    const boxRect = el.box.getBoundingClientRect();
+    el.toast.style.left = `${boxRect.left}px`;
+    el.toast.style.top = `${boxRect.top - 52}px`;
 
     // Hot keys.
-    $('#keys').style.opacity = 0;
+    el.keys.style.opacity = 0;
     if (t > 23.9 && t < 25.8) keys(t, 24.0, 25.7, ['Ctrl', 'Shift', 'E'], 24.35);
     else if (t > 27.6 && t < 28.9) keys(t, 27.7, 28.8, ['Enter'], 28.15);
     else if (t > 33 && t < 35) keys(t, 33.1, 34.9, ['Ctrl', 'Shift', 'L'], 33.5);
-    $('#badge').style.display = t > 33.55 ? 'block' : 'none';
+    el.badge.style.display = t > 33.55 ? 'block' : 'none';
 
     // Caption.
     const caption = CAPTIONS.find(([a, b]) => t >= a && t < b);
-    const captionEl = $('#caption');
-    captionEl.style.opacity = caption ? window_(t, caption[0], caption[0] + .25, caption[1] - .25, caption[1]) : 0;
+    el.caption.style.opacity = caption ? window_(t, caption[0], caption[0] + .25, caption[1] - .25, caption[1]) : 0;
     if (caption) {
-        captionEl.querySelector('.num').textContent = caption[2];
-        captionEl.querySelector('.text').textContent = caption[3];
+        el.caption.querySelector('.num').textContent = caption[2];
+        el.caption.querySelector('.text').textContent = caption[3];
     }
 
     // Cursor and clicks.
     const cursor = cursorAt(t);
-    const cursorEl = $('#cursor');
-    cursorEl.style.opacity = window_(t, 4.5, 4.8, 41.6, 42);
-    cursorEl.style.transform = `translate(${cursor.x - 2}px, ${cursor.y - 2}px)`;
+    el.cursor.style.opacity = window_(t, 4.5, 4.8, 41.6, 42);
+    el.cursor.style.transform = `translate(${cursor.x - 2}px, ${cursor.y - 2}px)`;
     const click = CLICKS.find((at) => t >= at && t < at + .45);
-    const ripple = $('#ripple');
-    ripple.style.opacity = click === undefined ? 0 : 1 - progress(t, click, click + .45);
+    el.ripple.style.opacity = click === undefined ? 0 : 1 - progress(t, click, click + .45);
     const scale = click === undefined ? 1 : .4 + progress(t, click, click + .45);
-    ripple.style.transform = `translate(${cursor.x}px, ${cursor.y}px) scale(${scale})`;
+    el.ripple.style.transform = `translate(${cursor.x}px, ${cursor.y}px) scale(${scale})`;
 }
 
 window.DURATION = 47;
