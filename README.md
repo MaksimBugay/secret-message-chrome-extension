@@ -11,7 +11,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   language, message history) and **Encryption** (workspace, password, owner signature). The widget opens on
   Settings → Encryption while no password is set.
 - **Encode:** select text on the page (a Facebook, VK or LinkedIn post, or chat messages) and open the widget:
-  - the selected text is added to the conversation history;
+  - the selected text is added to the conversation history, without private messages shown by auto decoding;
   - the topic is set to `FB post` (facebook.com), `VK post` (vk.com / vk.ru), `LinkedIn post` (linkedin.com) or `Web chat`
     (any other site);
   - type the private message and press **Encode message** – the public phrase is copied to the clipboard.

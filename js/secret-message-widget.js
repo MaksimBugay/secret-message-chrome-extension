@@ -446,6 +446,22 @@ window.SecretMessageWidget = (function () {
         ui.historyCount.textContent = messageCount(history.length);
     }
 
+    // The text selected on the page, without the private messages shown in it by auto decoding (js/hover-decoder.js):
+    // hidden while it is read, as the selection's text leaves out what is not shown.
+    function selectedText() {
+        const selection = window.getSelection();
+        if (!selection?.rangeCount) return '';
+        const shown = [...document.querySelectorAll('[data-secret-message-decoded]')]
+            .filter((element) => selection.containsNode(element, true));
+        const displays = shown.map((element) => element.style.display);
+        shown.forEach((element) => { element.style.display = 'none'; });
+        try {
+            return selection.toString().trim();
+        } finally {
+            shown.forEach((element, index) => { element.style.display = displays[index]; });
+        }
+    }
+
     // The text selected on the page is the conversation the public phrase should fit into.
     function addSelectionToHistory(selection) {
         if (!selection || history.at(-1) === selection) return '';
@@ -874,7 +890,7 @@ window.SecretMessageWidget = (function () {
         convertFocused,
         // Icon click / hot key / menu: the text selected on the page goes to the history, the topic follows the site.
         show() {
-            const selection = window.getSelection()?.toString().trim() ?? '';
+            const selection = selectedText();
             ready.then(() => {
                 reveal();
                 ui.topic.value = SecretMessageSites.forPage().topic;
