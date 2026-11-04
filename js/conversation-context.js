@@ -1,42 +1,13 @@
 // What a reply typed in a text box answers, for the history of "Convert into secret message" (the widget's
-// convertFocused): the caption of the commented post or the answered comment (Facebook, VK), or the last message of the
-// open chat (Telegram Web). Site markup changes often: each site lists the selectors known to work, and when none
-// matches the history is left as it is.
+// convertFocused): the caption of the commented post or the answered comment (sites with comments on posts), or the last
+// message of the open chat (chat sites). The selectors come from the page's site (js/sites/); when none matches, the
+// history is left as it is.
 window.SecretMessageConversationContext = (function () {
     'use strict';
 
     // Never conversation text: page scripts, buttons ("See more", reactions) and the private messages shown by auto
     // decoding (js/hover-decoder.js).
     const SKIPPED = 'script, style, noscript, button, [role="button"], [data-secret-message-decoded]';
-    // Labels of reply boxes: "Reply to Anna", "Write a reply…", "Ответить", "Відповісти", "Antworten", "Répondre"…
-    const REPLY_LABEL = /reply|answer|respon|répon|antwort|rispon|ответ|відпов|odpowi/i;
-
-    const SITES = [
-        {
-            host: /(^|\.)facebook\.com$/i,
-            // Feed and group posts, and a post opened in a dialog.
-            post: '[aria-posinset], [role="article"]:not([aria-label]), [role="dialog"]',
-            caption: '[data-ad-rendering-role="story_message"], [data-ad-comet-preview="message"], [data-ad-preview="message"]',
-            // Comments and replies are articles labelled "Comment by …" / "Reply by …".
-            comment: '[role="article"][aria-label]',
-            commentText: 'div[dir="auto"]'
-        },
-        {
-            host: /(^|\.)vk\.(com|ru)$/i,
-            // The redesigned site (test ids; comments are in the post popup) and the old one (classes).
-            post: '[data-testid="post"], .post, ._post',
-            caption: '[data-testid="post_text"] [data-testid="showmoretext"], .wall_post_text',
-            comment: '[data-testid="wall_comments_comment_root"], [data-testid="wall_comments_comment_in_thread"], .reply',
-            commentText: '[data-testid="comment-text"], .wall_reply_text, .reply_text',
-            author: '[data-testid="comment-owner"], .author'
-        },
-        {
-            host: /^web\.telegram\.org$/i,
-            // Telegram Web K (/k/) and A (/a/); the time, reactions and quoted replies are inside the message.
-            message: '.bubble .message, .Message .text-content',
-            meta: '.time, .MessageMeta, .reactions, .Reactions, .reply, .EmbeddedMessage'
-        }
-    ];
 
     /**
      * Text as the reader sees it: emoji drawn as images (Facebook, VK, Telegram) become their alt text, line breaks
@@ -116,9 +87,9 @@ window.SecretMessageConversationContext = (function () {
         const comments = [...scope.querySelectorAll(site.comment)].filter((comment) => precedes(comment, editor));
         const named = comments.findLast((comment) => openerOf(text, authorOf(site, comment)));
         if (named) return named;
-        // Facebook opens the reply box under the comment, inside its thread, labelled "Reply to Anna Smith".
+        // A reply box opened under the comment, inside its thread, labelled "Reply to Anna Smith" (Facebook).
         const label = labelOf(editor);
-        if (!REPLY_LABEL.test(label)) return null;
+        if (!site.replyLabel?.test(label)) return null;
         const labelled = comments.findLast((comment) => {
             const author = authorOf(site, comment);
             return author && label.includes(author);
@@ -172,12 +143,12 @@ window.SecretMessageConversationContext = (function () {
          * reply answers, and the name of the answered commenter the reply starts with (kept out of the secret).
          */
         find(editor, text) {
-            const site = SITES.find(({host}) => host.test(window.location.hostname));
-            if (!site) return {context: null, opener: ''};
+            const site = SecretMessageSites.forHost();
             if (site.message) {
                 const message = lastMessage(site);
                 return {context: message ? {kind: 'message', text: message} : null, opener: ''};
             }
+            if (!site.comment) return {context: null, opener: ''};
             const comment = answeredComment(site, editor, text);
             const opener = comment ? openerOf(text, authorOf(site, comment)) : '';
             const answered = comment ? commentText(site, comment) : '';

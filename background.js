@@ -15,13 +15,18 @@ const MESSENGER_PAGES = [
     "https://web.telegram.org/*"
 ];
 
-// Encode / decode and settings storage; the Facebook / VK / Telegram content scripts in manifest.json load them too.
+// Encode / decode, settings storage and the site-specific code (js/sites/); the Facebook / VK / Telegram content scripts in
+// manifest.json load them too.
 const CORE_SCRIPTS = [
     "js/lib/secret-message-env.js",
     "js/lib/jszip.min.js",
     "js/lib/security-utils.js",
     "js/lib/secret-message.js",
-    "js/lib/secret-message-settings.js"
+    "js/lib/secret-message-settings.js",
+    "js/sites/sites.js",
+    "js/sites/facebook.js",
+    "js/sites/vk.js",
+    "js/sites/telegram.js"
 ];
 
 // The widget, injected on icon click / hot key / menu click (activeTab grants access to the current page).

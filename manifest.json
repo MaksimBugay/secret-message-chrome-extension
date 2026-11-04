@@ -33,6 +33,10 @@
         "js/lib/security-utils.js",
         "js/lib/secret-message.js",
         "js/lib/secret-message-settings.js",
+        "js/sites/sites.js",
+        "js/sites/facebook.js",
+        "js/sites/vk.js",
+        "js/sites/telegram.js",
         "js/hover-decoder.js"
       ],
       "run_at": "document_idle"

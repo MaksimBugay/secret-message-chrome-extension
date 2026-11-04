@@ -681,14 +681,6 @@ window.SecretMessageWidget = (function () {
         if (!ui.workspace.value) generateWorkspace();
     })();
 
-    // The kind of conversation the public phrase should fit into.
-    function pageTopic() {
-        const hostname = window.location.hostname;
-        if (/(^|\.)facebook\.com$/i.test(hostname)) return 'FB post';
-        if (/(^|\.)vk\.(com|ru)$/i.test(hostname)) return 'VK post';
-        return 'Web chat';
-    }
-
     function reveal() {
         setShown(true);
         if (state.collapsed) setCollapsed(false);
@@ -885,7 +877,7 @@ window.SecretMessageWidget = (function () {
             const selection = window.getSelection()?.toString().trim() ?? '';
             ready.then(() => {
                 reveal();
-                ui.topic.value = pageTopic();
+                ui.topic.value = SecretMessageSites.forHost().topic;
                 status(`Topic set to “${ui.topic.value}”.${addSelectionToHistory(selection)}`);
                 // Without a password nothing can be encoded, so open on the Settings tab.
                 if (ui.password.value) {
