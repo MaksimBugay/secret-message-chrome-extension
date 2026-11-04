@@ -107,6 +107,10 @@ window.SecretMessageHoverDecoder = (function () {
             style.position !== 'absolute' && style.position !== 'fixed';
     };
 
+    // Facebook wraps each emoji image in an inline-flex span; it is part of the line like the image itself.
+    const isEmoji = (element) => getComputedStyle(element).display.startsWith('inline') &&
+        !element.textContent.trim() && Boolean(element.querySelector('img[alt]'));
+
     function blockOf(node) {
         for (let element = node.parentElement; element && element !== document.body; element = element.parentElement) {
             if (!isInline(element)) {
@@ -133,7 +137,7 @@ window.SecretMessageHoverDecoder = (function () {
                     parts.push(element.alt);
                     last = element;
                 }
-            } else if (isInline(element)) {
+            } else if (isInline(element) || isEmoji(element)) {
                 walk(element);
             } else if (!inlineOnly && getComputedStyle(element).display !== 'none') {
                 parts.push('\n');
