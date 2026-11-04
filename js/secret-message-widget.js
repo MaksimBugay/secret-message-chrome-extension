@@ -785,12 +785,13 @@ window.SecretMessageWidget = (function () {
 
     const CONTEXT_NAMES = {post: 'Post caption', comment: 'Answered comment', message: 'Last chat message'};
 
-    // Cut to the history limit; not added again while it is still in the history.
-    function addContextToHistory(context) {
-        const text = context.text.slice(0, HISTORY_LIMIT).replace(/[\uD800-\uDBFF]$/, '');
-        if (history.includes(text)) return '';
-        appendMessageToHistory(text);
-        return ` ${CONTEXT_NAMES[context.kind]} added to history.`;
+    // The history then holds only what this reply answers, cut to the history limit: earlier posts and chats left
+    // in the page have nothing to do with it.
+    function startHistoryWith(context) {
+        history.length = 0;
+        if (context) history.push(context.text.slice(0, HISTORY_LIMIT).replace(/[\uD800-\uDBFF]$/, ''));
+        renderHistory();
+        return context ? ` ${CONTEXT_NAMES[context.kind]} added to history.` : '';
     }
 
     async function convertFocused() {
@@ -815,7 +816,7 @@ window.SecretMessageWidget = (function () {
             (ui.workspace.value.trim() ? ui.password : ui.workspace).focus();
             return;
         }
-        const added = context ? addContextToHistory(context) : '';
+        const added = startHistoryWith(context);
         notify('Encrypting your message…', {near: editor, closing: false});
         await withLockedControls(async () => {
             try {

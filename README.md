@@ -17,7 +17,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
     If the clipboard is not available, the phrase is shown in the widget instead.
 - **Convert in place:** type the private message in any text box (a comment, a reply, a chat message) and press
   `Ctrl+Shift+E` (`MacCtrl+Shift+E`) or choose **Convert into secret message** in the text box's context menu:
-  - what the reply answers is added to the message history (cut to the history limit, not added twice): the caption
+  - the message history is cleared and starts with what the reply answers (cut to the history limit): the caption
     of the commented post or the answered comment (Facebook, VK; a reply starting with the commenter's name or, on
     Facebook, a box labelled "Reply to …"), or the last message of the open chat (Telegram Web);
   - the message is encoded with the widget's current obfuscation settings and history, without opening the widget;
