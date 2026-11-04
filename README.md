@@ -20,7 +20,8 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   tabs and the toolbar icon shows an **ON** badge while it is on. It uses the obfuscation settings saved with the
   widget's *Save* button and is paused while the widget is shown (expanded or collapsed).
   Hovering over a text for 0.4 s tries to decode it (at most one request per second); emoji drawn as images are read
-  as their `alt` text. The public phrase is left untouched and the private message is shown right after it, in italic
+  as their `alt` text. The server matches phrases exactly, and sites often drop the invisible `U+FE0F` after emoji such
+  as 🕷 ❤ ☀, so phrases with these emoji are also tried with and without it. The public phrase is left untouched and the private message is shown right after it, in italic
   violet, after a magic-eye icon. A text the server reports as not secret is checked only once per credentials;
   failed requests (offline, rate limit, server error) are retried on the next hover.
 - Obfuscation settings (workspace, password, owner signature, topic/style/language) are saved per site

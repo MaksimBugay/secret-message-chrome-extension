@@ -179,6 +179,18 @@ window.SecretMessageHoverDecoder = (function () {
         return candidates.filter((candidate) => candidate.text.length >= MIN_LENGTH && candidate.text.length <= MAX_LENGTH);
     }
 
+    /**
+     * Spellings to look up. The server matches the phrase exactly, but sites drawing emoji as images often drop the
+     * invisible U+FE0F after emoji that are plain-text symbols by default (🕷 ❤ ☀), or add one; the generated phrase
+     * usually has it.
+     */
+    function spellings(text) {
+        // Emoji minus the keycap bases 0-9 # *; same as \p{Extended_Pictographic} here, which WebStorm doesn't know.
+        const withSelectors = text.replace(/[^\P{Emoji}0-9#*](?!\uFE0F)/gu,
+            (emoji) => (/\p{Emoji_Presentation}/u.test(emoji) ? emoji : `${emoji}\uFE0F`));
+        return [...new Set([text, withSelectors, text.replace(/\uFE0F/g, '')])];
+    }
+
     async function decode(text, current) {
         if (checked.has(text)) {
             return checked.get(text);
@@ -238,16 +250,18 @@ window.SecretMessageHoverDecoder = (function () {
             return;
         }
         for (const candidate of candidatesAt(node)) {
-            const message = await decode(candidate.text, current);
-            if (message === null) {
-                continue;
+            for (const phrase of spellings(candidate.text)) {
+                const message = await decode(phrase, current);
+                if (message === null) {
+                    continue;
+                }
+                // The widget may have been opened, or the page may have re-rendered the element, during the request.
+                if (active() && candidate.element.isConnected &&
+                    contentOf(candidate.element, candidate.inlineOnly).text === candidate.text) {
+                    showMessage(candidate, message);
+                }
+                return;
             }
-            // The widget may have been opened, or the page may have re-rendered the element, during the request.
-            if (active() && candidate.element.isConnected &&
-                contentOf(candidate.element, candidate.inlineOnly).text === candidate.text) {
-                showMessage(candidate, message);
-            }
-            return;
         }
     }
 

@@ -86,7 +86,19 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 //-----------------------widget-----------------------------------------------------------------------------------------
 
-const openWidget = (tab) => showWidget(tab).catch((error) => console.error(error));
+// Chrome does not let extensions script its own pages (chrome://, the Web Store, the PDF viewer…), so a click there
+// does nothing. Without access the tab URL is not even visible; only http(s) pages are tried, and Chrome's refusal on
+// protected http(s) pages is expected, not an error.
+const NO_ACCESS_ERROR = /cannot access|cannot be scripted/i;
+
+const openWidget = (tab) => {
+    if (!/^https?:/.test(tab?.url ?? "")) {
+        return;
+    }
+    showWidget(tab).catch((error) => {
+        if (!NO_ACCESS_ERROR.test(error.message)) console.error(error);
+    });
+};
 
 chrome.action.onClicked.addListener(openWidget);
 
@@ -99,9 +111,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 async function showWidget(tab) {
-    if (tab?.id === undefined) {
-        return;
-    }
     const target = {tabId: tab.id};
     // The libraries declare top-level classes and constants, so they can be injected only once per page.
     const [{result: loaded}] = await chrome.scripting.executeScript({
