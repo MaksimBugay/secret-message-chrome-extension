@@ -90,6 +90,7 @@
         <a class="sub" href="#encryption">Encryption settings</a>
         <a class="sub" href="#conversation">Conversation details</a>
         <a class="sub" href="#save">Save, export, import</a>
+        <a class="sub" href="#share">Sharing settings safely</a>
         <a href="#sites">Supported sites</a>
         <a href="#keys">Hot keys</a>
         <a href="#privacy">Privacy and security</a>
@@ -134,8 +135,9 @@
                     stays in the toolbar.</li>
                 <li><strong>Agree on a workspace and password</strong>Open a site where you will talk (for example
                     facebook.com), click the Secret Message icon and go to <i>Settings → Encryption</i>. Keep or generate
-                    a workspace and enter a password: they are saved automatically. Share both with your friend privately,
-                    for example in person; your friend enters the same values.</li>
+                    a workspace and enter a password: they are saved automatically. Share both with your friend privately:
+                    export the settings and send the file with <a href="https://secure.fileshare.ovh/file-transfer-embedded.html">Secure FileShare file transfer</a> (see <a href="#share">Sharing settings
+                    safely</a>), or tell them in person. Your friend enters or imports the same values.</li>
                 <li><strong>Write your private message in a comment box</strong>Click into a comment, reply or chat
                     box and type the private message.</li>
                 <li><strong>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></strong>Or right-click the box and
@@ -223,7 +225,8 @@
                     one is generated when the field is empty; <i>Generate</i> makes a new one. Different workspaces keep
                     different groups apart.</dd>
                 <dt>Password</dt>
-                <dd>Encrypts your messages. Choose a strong one and share it only privately. The eye button shows or
+                <dd>Encrypts your messages. Choose a strong one and share it only privately (see
+                    <a href="#share">Sharing settings safely</a>). The eye button shows or
                     hides it. Without the password nobody, including the server, can read your messages, and they cannot
                     be recovered if it is lost.</dd>
                 <dt>Owner signature (optional)</dt>
@@ -270,8 +273,20 @@
                 <li><b>Import</b> (upload icon) loads such a file, which is then saved automatically, or a file with
                     only conversation details; click <i>Save</i> to keep those.</li>
             </ul>
-            <div class="warn">An exported file contains your <b>password in plain text</b>. Keep it safe, and transfer
-                it only over a channel you trust.</div>
+            <div class="warn">An exported file contains your <b>password in plain text</b>. Keep it safe, and never send
+                it through the chat or site you use the secret messages in.</div>
+
+            <h3 id="share">Sharing settings safely</h3>
+            <p>The safe and reliable way to give your friend the settings is the <a href="https://secure.fileshare.ovh/file-transfer-embedded.html">Secure FileShare file transfer</a>: an encrypted, direct transfer
+                from your device to theirs, without registration.</p>
+            <ol>
+                <li>Export your settings with the download icon in <i>Settings</i>.</li>
+                <li>Both of you open the file transfer page and keep it open; your friend shares the host name shown on
+                    their screen with you.</li>
+                <li>Send the exported JSON file only when both screens show <b>the same security code</b>.</li>
+                <li>Your friend imports the file with the upload icon in the widget, on each site you talk on; it is
+                    saved automatically. Delete the file afterwards.</li>
+            </ol>
         </section>
 
         <section id="sites">
