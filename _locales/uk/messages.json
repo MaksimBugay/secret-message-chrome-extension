@@ -1,0 +1,17 @@
+{
+  "appName": {
+    "message": "Secret Message – зашифровані фрази для чатів"
+  },
+  "shortDesc": {
+    "message": "Ховайте особисті повідомлення в невинних публічних фразах. Шифруйте й розшифровуйте текст прямо у Facebook, VK і Telegram."
+  },
+  "actionTitle": {
+    "message": "Secret Message (Ctrl+Shift+Y)"
+  },
+  "commandDesc": {
+    "message": "Відкрити Secret Message"
+  },
+  "menuTitle": {
+    "message": "Зашифрувати або розшифрувати повідомлення (Ctrl+Shift+Y)"
+  }
+}

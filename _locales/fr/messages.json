@@ -1,0 +1,17 @@
+{
+  "appName": {
+    "message": "Secret Message – phrases chiffrées pour vos chats"
+  },
+  "shortDesc": {
+    "message": "Cachez vos messages privés dans des phrases publiques anodines. Chiffrez et déchiffrez du texte dans Facebook, VK et Telegram."
+  },
+  "actionTitle": {
+    "message": "Secret Message (Ctrl+Maj+Y)"
+  },
+  "commandDesc": {
+    "message": "Ouvrir Secret Message"
+  },
+  "menuTitle": {
+    "message": "Chiffrer ou déchiffrer un message secret (Ctrl+Maj+Y)"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "appName": {
+    "message": "Secret Message – verschlüsselte Chat-Phrasen"
+  },
+  "shortDesc": {
+    "message": "Private Nachrichten in harmlosen öffentlichen Sätzen verstecken. Text direkt in Facebook, VK und Telegram ver- und entschlüsseln."
+  },
+  "actionTitle": {
+    "message": "Secret Message (Strg+Umschalt+Y)"
+  },
+  "commandDesc": {
+    "message": "Secret Message öffnen"
+  },
+  "menuTitle": {
+    "message": "Geheime Nachricht ver- oder entschlüsseln (Strg+Umschalt+Y)"
+  }
+}
