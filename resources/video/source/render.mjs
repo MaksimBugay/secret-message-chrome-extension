@@ -2,8 +2,8 @@
 // captured, then encoded with ffmpeg when it is installed, else with Chrome's own MediaRecorder (H.264 MP4).
 //   node render.mjs                     the video
 //   node render.mjs --preview 6.6,26    single frames, as preview-<t>.png in the frames folder
-//   node render.mjs --store             Chrome Web Store screenshots (1280×800) and the promo tile (440×280, tile.html)
-//                                       in ../../store
+//   node render.mjs --store             Chrome Web Store images in ../../store: screenshots (1280×800), the small and the
+//                                       marquee promo tiles (440×280, 1400×560; tile.html) and the store icon (128×128)
 import {Buffer} from 'node:buffer';
 import {spawn, spawnSync} from 'node:child_process';
 import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
@@ -103,6 +103,9 @@ try {
         // Laid out at 620×395, so the widget keeps its own size, then scaled to 440×280.
         await open(`file://${tile}`, 620, 395);
         writeFileSync(join(storeDir, 'promo-tile-440x280.jpg'), await screenshot({x: 0, y: 0, width: 620, height: 280 * 620 / 440, scale: 440 / 620}));
+        await open(`file://${tile}?marquee`, 1400, 560);
+        writeFileSync(join(storeDir, 'marquee-promo-tile-1400x560.jpg'), await screenshot());
+        await storeIcon();
         rmSync(framesDir, {recursive: true, force: true});
         console.log('store images in', storeDir);
     } else if (previews) {
@@ -138,6 +141,20 @@ try {
 }
 
 // Plays the frames on a canvas at FPS and records it; the recording is real time, so this takes as long as the video.
+// The store's icon: the icon's artwork at 96×96 inside 16 px of transparent padding, as the store recommends (the
+// artwork of icon.svg fills 116 of its 128 px).
+async function storeIcon() {
+    const svg = readFileSync(join(here, '..', '..', 'icon-src', 'icon.svg'), 'utf8');
+    const page = join(framesDir, 'icon.html');
+    writeFileSync(page, `<!doctype html><body style="margin:0;background:transparent">
+        <img alt="" src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}" style="width:106px;height:106px;margin:11px;display:block"></body>`);
+    await call('Emulation.setDefaultBackgroundColorOverride', {color: {r: 0, g: 0, b: 0, a: 0}});
+    await open(`file://${page}`, 128, 128);
+    const png = (await call('Page.captureScreenshot', {format: 'png'})).data;
+    writeFileSync(join(storeDir, 'store-icon-128x128.png'), Buffer.from(png, 'base64'));
+    await call('Emulation.setDefaultBackgroundColorOverride', {});
+}
+
 async function encodeInChrome(frames) {
     await call('Page.navigate', {url: 'about:blank'});
     await new Promise((resolve) => setTimeout(resolve, 500));

@@ -69,7 +69,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | `docs/welcome.html`, `docs/promo.mp4` | Welcome page with the promo video, opened once after installing (not after updates) |
 | `docs/help.html` | Documentation, opened from the widget's **?** button; the shield button opens the privacy policy at https://secure.fileshare.ovh/privacy/secret-message-privacy.html |
 | `resources/video/` | Promo video `secret-message-promo.mp4`; sources in `source/` (`node render.mjs`) |
-| `resources/store/` | Chrome Web Store screenshots (1280×800) and promo tile (440×280): `node resources/video/source/render.mjs --store` |
+| `resources/store/` | Chrome Web Store images: screenshots (1280×800), small and marquee promo tiles (440×280, 1400×560), store icon (128×128): `node resources/video/source/render.mjs --store` |
 | `images/icon-*.png` | Icons; sources in `resources/icon-src/*.svg` |
 | `_locales/*` | en, ru, uk, de, es, fr |
 

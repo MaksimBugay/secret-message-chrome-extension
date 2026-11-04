@@ -1,6 +1,8 @@
 <!doctype html>
-<!-- Chrome Web Store small promo tile with the real widget (the extension's own script and styles). Laid out at 620×395 so the widget has its own size; render.mjs --store scales the screenshot down to
-     440×280 and saves it as ../../store/promo-tile-440x280.jpg. -->
+<!-- Chrome Web Store promo tiles with the real widget (the extension's own script and styles); render.mjs --store saves
+     them in ../../store:
+       tile.html            small tile: laid out at 620×395 so the widget has its own size, scaled down to 440×280
+       tile.html?marquee    marquee tile, 1400×560, also with a comment and its decoded message -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -14,8 +16,25 @@
     h1 { font-size: 31px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; }
     h1 em { font-style: normal; color: #a78bfa; }
     .sites { color: #93a4bb; font-size: 15px; line-height: 1.5; }
+    .how, .comment { display: none; }
+
+    [data-marquee], [data-marquee] body { width: 1400px; height: 560px; }
+    [data-marquee] .pitch { left: 80px; width: 470px; gap: 20px; }
+    [data-marquee] h1 { font-size: 54px; }
+    [data-marquee] .how { display: block; color: #c9d5e6; font-size: 20px; line-height: 1.5; }
+    [data-marquee] kbd { font: 600 16px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 3px 7px; border-radius: 6px; background: #1d2a40;
+        border: 1px solid #3a4f70; color: #fff; }
+    [data-marquee] .sites { font-size: 17px; }
+    [data-marquee] .comment { display: flex; position: absolute; left: 1010px; top: 196px; width: 330px; gap: 10px; align-items: flex-start; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, #f59e0b, #ef4444); }
+    .bubble { background: #f0f2f5; color: #050505; border-radius: 18px; padding: 10px 14px; font-size: 16px; line-height: 1.4;
+        box-shadow: 0 16px 40px #0007; }
+    .bubble b { display: block; font-size: 13px; }
+    .decoded { color: #7c3aed; font-style: italic; }
 </style>
 <script>
+    const marquee = location.search.includes('marquee');
+    document.documentElement.toggleAttribute('data-marquee', marquee);
     // The widget's shadow root is closed; keep it here to fill in the sample message.
     let widgetShadow = null;
     const attachShadow = Element.prototype.attachShadow;
@@ -24,9 +43,10 @@
         if (this.localName === 'secret-message-widget') widgetShadow = shadow;
         return shadow;
     };
+    const widgetState = marquee ? {left: 600, top: 95, collapsed: false} : {left: 222, top: 14, collapsed: false};
     Object.defineProperty(window, 'chrome', {configurable: true, value: {
         runtime: {getURL: (path) => `../../../${path}`, sendMessage: async () => undefined},
-        storage: {local: {get: async () => ({secretMessageWidgetState: {left: 222, top: 14, collapsed: false}}), set: async () => undefined}}
+        storage: {local: {get: async () => ({secretMessageWidgetState: widgetState}), set: async () => undefined}}
     }});
 </script>
 <script src="../../../js/lib/secret-message-env.js"></script>
@@ -38,7 +58,14 @@
 <body>
     <div class="pitch">
         <h1>Hide a <em>private message</em> in any comment</h1>
+        <p class="how">Type it in a comment box and press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>: everybody sees a
+            friendly public phrase, only your friend reads the secret.</p>
         <div class="sites">Facebook · VK · LinkedIn<br>Telegram Web · any site</div>
+    </div>
+    <div class="comment">
+        <div class="avatar"></div>
+        <div class="bubble"><b>Max</b>Beautiful shot! Saturday works for me — I'll bring the thermos ☕
+            <span class="decoded">👁 Can't talk here — meet me at 7 by the old bridge</span></div>
     </div>
 <script>
     SecretMessageWidget.show();
