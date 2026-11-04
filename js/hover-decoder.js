@@ -10,6 +10,13 @@ window.SecretMessageHoverDecoder = (function () {
     const CACHE_LIMIT = 500;
     // At most one decode request per second; texts already checked are answered from the cache.
     const REQUEST_INTERVAL = 1000;
+    // The server answers at most this many lookups per day from one IP address (HTTP 429 after that); lookups then
+    // pause, so hovering does not keep sending requests that cannot be answered.
+    const DAILY_LOOKUPS = 1000;
+    const LIMIT_PAUSE = 60 * 60 * 1000;
+    const NOTICE_TIME = 12000;
+    // Higher limits are arranged by e-mail.
+    const CONTACT = 'sfile4share@gmail.com';
     // Same key as AUTO_DECODING_KEY in background.js.
     const AUTO_DECODING_KEY = 'autoDecoding';
     // Marks the private message added to the page, so it is never read as part of a phrase.
@@ -39,6 +46,7 @@ window.SecretMessageHoverDecoder = (function () {
     let running = false;
     let credentialsKey = '';
     let lastRequestAt = 0;
+    let limitedUntil = 0;
     // Phrase text -> decoded message, or null when it is not a secret message for the current credentials.
     const checked = new Map();
 
@@ -210,6 +218,9 @@ window.SecretMessageHoverDecoder = (function () {
         if (checked.has(text)) {
             return checked.get(text);
         }
+        if (Date.now() < limitedUntil) {
+            return null;
+        }
         // Requests are made one at a time (see schedule), so waiting here keeps the rate across all hovers.
         const wait = lastRequestAt + REQUEST_INTERVAL - Date.now();
         if (wait > 0) {
@@ -221,8 +232,13 @@ window.SecretMessageHoverDecoder = (function () {
             message = await secreteMessagePublicPhraseToText(text, current.password, current.workspaceId,
                 current.ownerSignature || null);
         } catch (error) {
-            // Offline, rate limited or a server error: not an answer, so the text is checked again on the next hover.
-            if (error instanceof TypeError || /\(HTTP (429|5\d\d)\)/.test(error.message)) {
+            if (/\(HTTP 429\)/.test(error.message)) {
+                limitedUntil = Date.now() + LIMIT_PAUSE;
+                showLimitNotice();
+                return null;
+            }
+            // Offline or a server error: not an answer, so the text is checked again on the next hover.
+            if (error instanceof TypeError || /\(HTTP 5\d\d\)/.test(error.message)) {
                 return null;
             }
             message = null; // Not a secret message for these credentials.
@@ -232,6 +248,27 @@ window.SecretMessageHoverDecoder = (function () {
         }
         checked.set(text, message);
         return message;
+    }
+
+    // In the corner of the page, closed with a click or after a while; built from DOM nodes, so no page CSP blocks it.
+    function showLimitNotice() {
+        const host = document.createElement('secret-message-notice');
+        host.style.cssText = 'all: initial; position: fixed; z-index: 2147483647; right: 16px; bottom: 16px;';
+        const notice = document.createElement('div');
+        notice.setAttribute('role', 'status');
+        notice.title = 'Close';
+        notice.style.cssText = 'display: flex; align-items: center; gap: 10px; max-width: 380px; padding: 10px 14px; ' +
+            'border: 1px solid #3a4f70; border-radius: 12px; background: #0d1420; color: #e8eef7; cursor: pointer; ' +
+            'box-shadow: 0 10px 28px rgba(3, 8, 18, .5); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;';
+        const eye = magicEye();
+        eye.style.cssText += 'width: 22px; height: 22px; flex-shrink: 0; margin: 0;';
+        notice.append(eye, `Secret Message: the daily limit of ${DAILY_LOOKUPS} auto decoding lookups for your ` +
+            `internet connection (IP address) is reached. Auto decoding pauses for an hour. Need more? Write to ${CONTACT}.`);
+        host.attachShadow({mode: 'closed'}).append(notice);
+        const close = () => host.remove();
+        notice.addEventListener('click', close);
+        setTimeout(close, NOTICE_TIME);
+        document.documentElement.append(host);
     }
 
     function magicEye() {

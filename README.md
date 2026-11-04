@@ -37,7 +37,10 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   as 🕷 ❤ ☀, so phrases with these emoji are also tried with and without it. A reply starting with a link (a VK, Facebook or LinkedIn mention of the answered
   person) is tried without that name first (*Convert into secret message* keeps it out of the phrase), then as it is. The public phrase is left untouched and the private message is shown right after it, in italic
   violet, after a magic-eye icon. A text the server reports as not secret is checked only once per credentials;
-  failed requests (offline, rate limit, server error) are retried on the next hover.
+  failed requests (offline, server error) are retried on the next hover.
+- **Daily limits** of the server, per IP address: 20 encoded messages (the widget and *Convert* then say so) and 1000
+  decoding lookups (on HTTP 429 a notice appears in the page and auto decoding pauses for an hour). For higher limits,
+  for example 1000 encodings per day and unlimited decoding, contact us at sfile4share@gmail.com.
 - Obfuscation settings (workspace, password, owner signature, topic/style/language) are saved per site
   (e.g. www.facebook.com, vk.com, web.telegram.org) in that site's IndexedDB, in the same encrypted format the
   Secret Message page uses. They survive reinstalling the extension and are removed when the site's data is cleared.

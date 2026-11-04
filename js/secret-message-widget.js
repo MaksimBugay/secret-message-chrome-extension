@@ -17,6 +17,7 @@ window.SecretMessageWidget = (function () {
         expand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg>',
         help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>',
         privacy: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
+        mail: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
         close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
         eye: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="smw-eye-slash" d="m3 3 18 18"/></svg>',
         fingerprint: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a9 9 0 0 1 17 4v2M3 11v2a8 8 0 0 1-1 4"/><path d="M6 17a12 12 0 0 0 1-5v-1a5 5 0 0 1 10 0v2a19 19 0 0 1-1 6"/><path d="M9 21a16 16 0 0 0 2-8v-2a1 1 0 0 1 2 0v2a23 23 0 0 1-1 8"/></svg>',
@@ -36,6 +37,8 @@ window.SecretMessageWidget = (function () {
         'Curious', 'Storytelling'];
     const LOCALES = ['en', 'es', 'fr', 'de', 'pt', 'ru', 'zh', 'ja', 'ar', 'hi'];
     const RUN_LABEL = 'Encode message →';
+    // The contact button, and higher limits are arranged by e-mail.
+    const CONTACT = 'sfile4share@gmail.com';
 
     const localeLabel = (code) => `${new Intl.DisplayNames(['en'], {type: 'language'}).of(code)} (${code})`;
     const options = (values, label = (value) => value) =>
@@ -51,6 +54,7 @@ window.SecretMessageWidget = (function () {
     <div class="smw-header-actions">
       <button type="button" class="smw-icon-button" data-ref="help" title="Help">${ICONS.help}</button>
       <button type="button" class="smw-icon-button" data-ref="privacy" title="Privacy policy">${ICONS.privacy}</button>
+      <a class="smw-icon-button" data-ref="contact" href="mailto:${CONTACT}" title="Contact us: ${CONTACT}" aria-label="Contact us by email: ${CONTACT}">${ICONS.mail}</a>
       <button type="button" class="smw-icon-button" data-ref="toggleCollapse" title="Collapse">${ICONS.collapse}</button>
       <button type="button" class="smw-icon-button" data-ref="close" title="Close">${ICONS.close}</button>
     </div>
@@ -250,7 +254,7 @@ window.SecretMessageWidget = (function () {
     // Dragging by the header; a click without movement on the collapsed header expands the widget.
     let drag = null;
     header.addEventListener('pointerdown', (event) => {
-        if (event.button !== 0 || event.target.closest('button')) return;
+        if (event.button !== 0 || event.target.closest('button, a')) return;
         drag = {x: event.clientX, y: event.clientY, left: state.left, top: state.top, moved: false};
         header.setPointerCapture(event.pointerId);
     });
@@ -284,6 +288,10 @@ window.SecretMessageWidget = (function () {
     const openDoc = (page) => chrome.runtime.sendMessage({type: 'openDoc', page}).catch(() => undefined);
     ui.help.addEventListener('click', () => openDoc('help'));
     ui.privacy.addEventListener('click', () => openDoc('privacy'));
+    // Without a mail app set up, mailto: opens nothing useful, so the address is also copied.
+    ui.contact.addEventListener('click', async () => {
+        status(await copyToClipboard(CONTACT) ? `${CONTACT} copied to the clipboard.` : `Write to us at ${CONTACT}.`);
+    });
 
     // Keep page keyboard shortcuts (Facebook, VK, Telegram) from reacting to typing inside the widget.
     ['keydown', 'keyup', 'keypress'].forEach((type) => {
@@ -476,6 +484,17 @@ window.SecretMessageWidget = (function () {
         const removed = appendMessageToHistory(selection);
         if (removed === null) return ` Selected text exceeds ${HISTORY_LIMIT} characters and was not added to history.`;
         return ` Selected text added to history.${removedNote(removed)}`;
+    }
+
+    // The server encodes at most this many messages per day from one IP address (HTTP 429 after that).
+    const DAILY_ENCODES = 20;
+
+    function encodeError(error) {
+        if (/\(HTTP 429\)/.test(error.message)) {
+            return `Daily limit reached: up to ${DAILY_ENCODES} messages can be encoded per day from your internet ` +
+                `connection (IP address). Please try again tomorrow. Need more? Write to ${CONTACT}.`;
+        }
+        return error.message || 'Unable to encode the message. Please try again.';
     }
 
     // With the current obfuscation settings and history.
@@ -715,7 +734,7 @@ window.SecretMessageWidget = (function () {
                 }
                 status(message + appendPhraseToHistory(phrase));
             } catch (error) {
-                status(error.message || 'Unable to process the message. Please try again.', true);
+                status(encodeError(error), true);
             } finally {
                 ui.runButton.textContent = RUN_LABEL;
             }
@@ -793,7 +812,8 @@ window.SecretMessageWidget = (function () {
         toastNear = near;
         toastHost.style.display = 'block';
         placeToast();
-        if (closing) toastTimer = setTimeout(() => { toastHost.style.display = 'none'; }, TOAST_TIME);
+        // Errors take longer to read.
+        if (closing) toastTimer = setTimeout(() => { toastHost.style.display = 'none'; }, error ? 2 * TOAST_TIME : TOAST_TIME);
     }
 
     // The text box with the cursor: a text input, a textarea or the root of a rich text editor (contenteditable).
@@ -936,7 +956,7 @@ window.SecretMessageWidget = (function () {
                     status(`${reason} – copy the public phrase below.`);
                 }
             } catch (error) {
-                notify(error.message || 'Unable to encode the message. Please try again.', {error: true, near: editor});
+                notify(encodeError(error), {error: true, near: editor});
             }
         });
     }
