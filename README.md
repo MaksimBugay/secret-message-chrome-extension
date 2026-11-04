@@ -63,6 +63,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | `js/lib/device-secret.js`, `client.min.js`, `detect.min.js` | Browser fingerprint for the owner signature (copies) |
 | `js/lib/jszip.min.js` | JSZip 3.10.1 |
 | `js/lib/secret-message-env.js` | Globals the site's bundle normally provides (`PushcaClient.clusterBaseUrl`, `stringToArrayBuffer`) and the settings key |
+| `docs/welcome.html`, `docs/promo.mp4` | Welcome page with the promo video, opened once after installing (not after updates) |
 | `docs/help.html` | Documentation, opened from the widget's **?** button |
 | `docs/privacy.html` | Privacy policy, opened from the widget's shield button; self-contained, so it can also be published on secure.fileshare.ovh for the Chrome Web Store listing |
 | `images/icon-*.png` | Icons; sources in `resources/icon-src/*.svg` |
@@ -74,5 +75,6 @@ the site changes.
 ## Development
 Open `chrome://extensions`, enable *Developer mode*, *Load unpacked* and select this folder.
 All hot keys can be changed in `chrome://extensions/shortcuts`.
+The welcome page opens only on a fresh install: remove the extension and load it again to see it.
 
 To package: `zip -r secret-message.zip manifest.json background.js js css images docs _locales LICENSE -x '*.DS_Store'`

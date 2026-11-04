@@ -1,0 +1,52 @@
+<!doctype html>
+<!-- Shown once, right after the extension is installed (background.js); plays the promo video (resources/video). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome to Secret Message</title>
+<link rel="icon" href="../images/icon-32.png">
+<style>
+    :root { --text: #e8eef7; --muted: #a9b8cc; --border: #3a4f70; --accent: #6ea4ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(circle at 25% 15%, #3473ce44, transparent 50%), radial-gradient(circle at 80% 85%, #7c4dff55, transparent 50%), #0d1420; }
+    a { color: var(--accent); }
+    .page { max-width: 1000px; margin: 0 auto; padding: 36px 20px 56px; }
+    header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    header img { width: 56px; height: 56px; }
+    h1 { margin: 0; font-size: 30px; letter-spacing: -.4px; }
+    header p { margin: 0; color: var(--muted); }
+    video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; border: 1px solid var(--border); background: #000;
+        box-shadow: 0 24px 60px #0008; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 28px 0 22px; }
+    .steps div { border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; background: #131d2ecc; }
+    .steps b { display: block; margin-bottom: 4px; }
+    kbd { font: 13px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; }
+    .links { color: var(--muted); }
+    @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+    <header>
+        <img src="../images/icon-128.png" alt="">
+        <div>
+            <h1>Secret Message is installed</h1>
+            <p>Watch how it works in under a minute.</p>
+        </div>
+    </header>
+
+    <!-- Muted (it has no sound), so the browser lets it start on its own. -->
+    <video src="promo.mp4" controls autoplay muted playsinline preload="auto"></video>
+
+    <div class="steps">
+        <div><b>1. Pin it</b>Puzzle-piece icon in the toolbar → pin <i>Secret Message</i>.</div>
+        <div><b>2. Set it up</b>Click the icon and enter the workspace and password you share with your friend.</div>
+        <div><b>3. Use it</b>Type in a comment box and press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>; read with
+            <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>. On a Mac use <kbd>Control</kbd>.</div>
+    </div>
+    <p class="links">Everything else: <a href="help.html">Help</a> · <a href="privacy.html">Privacy policy</a></p>
+</div>
+</body>
+</html>

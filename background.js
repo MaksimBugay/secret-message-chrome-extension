@@ -40,7 +40,11 @@ const WIDGET_SCRIPTS = [
     "js/secret-message-widget.js"
 ];
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(({reason}) => {
+    // The welcome page with the promo video, once: not after updates or reloads.
+    if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
+        chrome.tabs.create({url: chrome.runtime.getURL("docs/welcome.html")});
+    }
     chrome.contextMenus.removeAll(() => {
         chrome.contextMenus.create({
             id: MENU_ITEM_ID,

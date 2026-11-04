@@ -1,9 +1,9 @@
-// Renders promo.html into ../secret-message-promo.mp4 with headless Chrome: each frame is drawn with render(t) and
+// Renders promo.html into ../secret-message-promo.mp4, copied to docs/promo.mp4 for the welcome page, with headless Chrome: each frame is drawn with render(t) and
 // captured, then encoded with ffmpeg when it is installed, else with Chrome's own MediaRecorder (H.264 MP4).
 //   node render.mjs                     the video
 //   node render.mjs --preview 6.6,26    single frames, as preview-<t>.png in the frames folder
 import {spawn, spawnSync} from 'node:child_process';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -97,6 +97,8 @@ try {
         } else {
             await encodeInChrome(frames);
         }
+        // The extension's welcome page plays this copy.
+        copyFileSync(output, join(here, '..', '..', '..', 'docs', 'promo.mp4'));
         console.log('video:', output);
     }
 } finally {
