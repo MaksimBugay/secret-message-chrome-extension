@@ -26,6 +26,9 @@
   "convertMenuTitle": {
     "message": "In geheime Nachricht umwandeln (Strg+Umschalt+E)"
   },
+  "inviteMenuTitle": {
+    "message": "Freund einladen (Einladungslink kopieren)"
+  },
   "convertCommandDesc": {
     "message": "Text im Eingabefeld in eine geheime Nachricht umwandeln"
   }

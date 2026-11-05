@@ -26,6 +26,9 @@
   "convertMenuTitle": {
     "message": "Convertir en mensaje secreto (Ctrl+Mayús+E)"
   },
+  "inviteMenuTitle": {
+    "message": "Invitar a un amigo (copiar enlace)"
+  },
   "convertCommandDesc": {
     "message": "Convertir el texto del campo de entrada en un mensaje secreto"
   }

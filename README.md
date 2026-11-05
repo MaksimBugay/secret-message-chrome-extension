@@ -29,6 +29,11 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
   - the text in the box is replaced with the public phrase (undo with `Ctrl+Z`). If the text was changed meanwhile,
     the phrase is copied to the clipboard instead;
   - without a workspace or password the widget opens on Settings → Encryption with the missing field focused.
+- **Invite a friend:** the context menu item *Invite a friend (copy join link)* copies a link to
+  `https://secure.fileshare.ovh/join-secret-message.html` with the obfuscation settings (without message history) as
+  URL-safe base64 JSON in the fragment (`#…`, not sent to the server). The join page (`web/join-secret-message.html`,
+  deployed by `deploy-join-secret-message.sh`) saves them as a settings file and opens the extension's store page.
+  Without a workspace or password the widget opens on Settings → Encryption.
 - **Auto decoding** (Facebook, Messenger, VK, Telegram Web, LinkedIn) is **off by default**. Turn it on or off with the
   context menu item *Auto-decode secret messages* or `Ctrl+Shift+L` (`MacCtrl+Shift+L`); the setting applies to all
   tabs and the toolbar icon shows an **ON** badge while it is on. It uses the obfuscation settings saved with the

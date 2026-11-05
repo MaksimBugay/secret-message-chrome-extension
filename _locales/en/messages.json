@@ -26,6 +26,9 @@
   "convertMenuTitle": {
     "message": "Convert into secret message (Ctrl+Shift+E)"
   },
+  "inviteMenuTitle": {
+    "message": "Invite a friend (copy join link)"
+  },
   "convertCommandDesc": {
     "message": "Convert the text in the focused text box into a secret message"
   }

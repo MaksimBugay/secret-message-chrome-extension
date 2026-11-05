@@ -40,6 +40,8 @@ window.SecretMessageWidget = (function () {
     const RUN_LABEL = 'Encode message →';
     // The contact button, and higher limits are arranged by e-mail.
     const CONTACT = 'sfile4share@gmail.com';
+    // Opened by an invited friend: the link's fragment (#…, never sent to the server) holds the obfuscation settings.
+    const JOIN_URL = 'https://secure.fileshare.ovh/join-secret-message.html';
 
     const localeLabel = (code) => `${new Intl.DisplayNames(['en'], {type: 'language'}).of(code)} (${code})`;
     const options = (values, label = (value) => value) =>
@@ -998,8 +1000,46 @@ window.SecretMessageWidget = (function () {
         });
     }
 
+    // The obfuscation settings as URL-safe base64 of their JSON, read by the join page (web/join-secret-message.html).
+    function inviteLink() {
+        const settings = currentSettings();
+        // Message history is conversation content of this page, not part of the invitation.
+        settings.publicConversationDetails.history = [];
+        const bytes = new TextEncoder().encode(JSON.stringify(settings));
+        const base64 = btoa(String.fromCharCode(...bytes));
+        return `${JOIN_URL}#${base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
+    }
+
+    async function inviteFriend() {
+        await ready;
+        if (!ui.workspace.value.trim() || !ui.password.value) {
+            reveal();
+            showPasswordSettings();
+            status('Enter a workspace and password first, then invite your friend again.', true);
+            (ui.workspace.value.trim() ? ui.password : ui.workspace).focus();
+            return;
+        }
+        let link;
+        try {
+            link = inviteLink();
+        } catch (error) {
+            notify(error.message || 'Unable to create the invite link.', {error: true});
+            return;
+        }
+        if (await copyToClipboard(link)) {
+            notify('Invite link copied – send it to your friend privately: it holds your password.');
+        } else {
+            reveal();
+            selectTab('tab', 'derivation');
+            showResult(link);
+            status('Clipboard is not available – copy the invite link below and send it to your friend privately.');
+        }
+    }
+
     return Object.freeze({
         convertFocused,
+        // Menu: a join link with the obfuscation settings goes to the clipboard.
+        inviteFriend,
         // Icon click / hot key / menu: the text selected on the page goes to the history, the topic follows the site.
         show() {
             const selection = selectedText();

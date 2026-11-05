@@ -26,6 +26,9 @@
   "convertMenuTitle": {
     "message": "Превратить в секретное сообщение (Ctrl+Shift+E)"
   },
+  "inviteMenuTitle": {
+    "message": "Пригласить друга (скопировать ссылку)"
+  },
   "convertCommandDesc": {
     "message": "Превратить текст в поле ввода в секретное сообщение"
   }

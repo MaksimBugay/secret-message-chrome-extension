@@ -1,6 +1,7 @@
 const MENU_ITEM_ID = "openSecretMessageMenuItem";
 const CONVERT_MENU_ITEM_ID = "convertMenuItem";
 const AUTO_DECODING_MENU_ITEM_ID = "autoDecodingMenuItem";
+const INVITE_MENU_ITEM_ID = "inviteFriendMenuItem";
 // Read by js/hover-decoder.js; auto decoding is off until turned on from the menu or with the hot key.
 const AUTO_DECODING_KEY = "autoDecoding";
 
@@ -56,6 +57,12 @@ chrome.runtime.onInstalled.addListener(({reason}) => {
             id: CONVERT_MENU_ITEM_ID,
             title: chrome.i18n.getMessage("convertMenuTitle"),
             contexts: ["editable"],
+            documentUrlPatterns: ["http://*/*", "https://*/*"]
+        });
+        chrome.contextMenus.create({
+            id: INVITE_MENU_ITEM_ID,
+            title: chrome.i18n.getMessage("inviteMenuTitle"),
+            contexts: ["all"],
             documentUrlPatterns: ["http://*/*", "https://*/*"]
         });
         chrome.contextMenus.create({
@@ -135,6 +142,8 @@ const inWidget = (func) => (tab) => {
 const openWidget = inWidget(() => SecretMessageWidget.show());
 // The text in the focused text box becomes the private message and is replaced with the public phrase.
 const convertFocusedText = inWidget(() => SecretMessageWidget.convertFocused());
+// A join link with the obfuscation settings is copied to the clipboard.
+const inviteFriend = inWidget(() => SecretMessageWidget.inviteFriend());
 
 chrome.action.onClicked.addListener(openWidget);
 
@@ -143,6 +152,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         openWidget(tab);
     } else if (info.menuItemId === CONVERT_MENU_ITEM_ID) {
         convertFocusedText(tab);
+    } else if (info.menuItemId === INVITE_MENU_ITEM_ID) {
+        inviteFriend(tab);
     } else if (info.menuItemId === AUTO_DECODING_MENU_ITEM_ID) {
         setAutoDecoding(info.checked);
     }
