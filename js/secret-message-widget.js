@@ -20,6 +20,7 @@ window.SecretMessageWidget = (function () {
         mail: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
         close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
         eye: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="smw-eye-slash" d="m3 3 18 18"/></svg>',
+        key: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M16 7l3 3M18 5l2 2"/></svg>',
         fingerprint: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a9 9 0 0 1 17 4v2M3 11v2a8 8 0 0 1-1 4"/><path d="M6 17a12 12 0 0 0 1-5v-1a5 5 0 0 1 10 0v2a19 19 0 0 1-1 6"/><path d="M9 21a16 16 0 0 0 2-8v-2a1 1 0 0 1 2 0v2a23 23 0 0 1-1 8"/></svg>',
         save: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h10V3M7 21v-8h10v8"/></svg>',
         download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/></svg>',
@@ -108,6 +109,7 @@ window.SecretMessageWidget = (function () {
         <div class="smw-row">
           <input id="smwPassword" data-ref="password" type="password" autocomplete="off" placeholder="••••••••">
           <button type="button" class="smw-icon-button smw-boxed" data-ref="togglePassword" title="Show password" aria-pressed="false">${ICONS.eye}</button>
+          <button type="button" class="smw-icon-button smw-boxed" data-ref="generatePassword" title="Generate a strong password">${ICONS.key}</button>
         </div>
         <label class="smw-label" for="smwOwnerSignature">Owner signature <span class="smw-optional">Optional</span></label>
         <div class="smw-row">
@@ -390,6 +392,21 @@ window.SecretMessageWidget = (function () {
         ui.workspace.value = workspace;
     }
 
+    // 20 characters from 85 symbols (~128 bits); rejection sampling keeps every symbol equally likely.
+    function generatePassword(length = 20) {
+        const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#$%&()*+,-./:;<=>?@[]^_{|}~';
+        const limit = 256 - (256 % charset.length);
+        let password = '';
+        while (password.length < length) {
+            for (const byte of crypto.getRandomValues(new Uint8Array(length * 2))) {
+                if (byte < limit && password.length < length) {
+                    password += charset[byte % charset.length];
+                }
+            }
+        }
+        return password;
+    }
+
     function setPasswordVisible(visible) {
         ui.password.type = visible ? 'text' : 'password';
         ui.togglePassword.setAttribute('aria-pressed', String(visible));
@@ -593,6 +610,15 @@ window.SecretMessageWidget = (function () {
         scheduleAutoSave();
     });
     ui.togglePassword.addEventListener('click', () => setPasswordVisible(ui.password.type === 'password'));
+    ui.generatePassword.addEventListener('click', () => {
+        ui.password.value = generatePassword();
+        // Shown so it can be copied and shared with the other side.
+        setPasswordVisible(true);
+        ui.password.focus();
+        ui.password.select();
+        status('Strong password generated. Share it with your contact securely.');
+        scheduleAutoSave();
+    });
 
     ui.retrieveOwnerSignature.addEventListener('click', () => {
         status('Retrieving owner signature…');
