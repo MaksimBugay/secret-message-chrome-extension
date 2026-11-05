@@ -76,6 +76,7 @@ Secret message Chrome extension (Manifest V3) – an on-page widget for
 | `js/lib/secret-message-env.js` | Globals the site's bundle normally provides (`PushcaClient.clusterBaseUrl`, `stringToArrayBuffer`) and the settings key |
 | `docs/welcome.html`, `docs/promo.mp4` | Welcome page with the promo video, opened once after installing (not after updates) |
 | `web/join-secret-message.html` | Join page on the web site (https://secure.fileshare.ovh/join-secret-message.html): saves the settings from an invite link's fragment as a JSON file and opens the extension's store page; deployed with `deploy-join-secret-message.sh` |
+| `web/privacy/secret-message-privacy.html` | Privacy policy published at https://secure.fileshare.ovh/privacy/secret-message-privacy.html (Chrome Web Store listing, widget's shield button); deployed with `deploy-privacy-policy.sh` |
 | `docs/help.html` | Documentation, opened from the widget's **?** button; the shield button opens the privacy policy at https://secure.fileshare.ovh/privacy/secret-message-privacy.html |
 | `resources/video/` | Promo video `secret-message-promo.mp4`; sources in `source/` (`node render.mjs`) |
 | `resources/store/` | Chrome Web Store images: screenshots (1280×800), small and marquee promo tiles (440×280, 1400×560), store icon (128×128): `node resources/video/source/render.mjs --store` |

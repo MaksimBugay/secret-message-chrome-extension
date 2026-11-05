@@ -1,6 +1,7 @@
 // Renders promo.html into ../secret-message-promo.mp4, copied to docs/promo.mp4 for the welcome page, with headless Chrome: each frame is drawn with render(t) and
 // captured, then encoded with ffmpeg when it is installed, else with Chrome's own MediaRecorder (H.264 MP4).
-//   node render.mjs                     the video
+//   node render.mjs                     the video: 2560×1440 with ffmpeg (for YouTube), and a 1280×720 copy in docs/
+//                                       for the welcome page, which keeps the extension small
 //   node render.mjs --preview 6.6,26    single frames, as preview-<t>.png in the frames folder
 //   node render.mjs --store             Chrome Web Store images in ../../store: screenshots (1280×800), the small and the
 //                                       marquee promo tiles (440×280, 1400×560; tile.html) and the store icon (128×128)
@@ -17,6 +18,8 @@ const FPS = 30;
 const WIDTH = 1280;
 const HEIGHT = 720;
 const PORT = 9335;
+// The page is laid out at WIDTH×HEIGHT and drawn at this pixel density, so text stays sharp at 1440p.
+const VIDEO_SCALE = 2;
 const here = dirname(fileURLToPath(import.meta.url));
 const output = join(here, '..', 'secret-message-promo.mp4');
 const framesDir = join(here, 'frames');
@@ -75,8 +78,8 @@ async function evaluate(expression) {
     return result.result.value;
 }
 
-async function open(url, width, height) {
-    await call('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: false});
+async function open(url, width, height, scale = 1) {
+    await call('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: scale, mobile: false});
     await call('Page.navigate', {url});
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await evaluate('document.fonts.ready.then(() => true)');
@@ -86,7 +89,9 @@ async function open(url, width, height) {
 const screenshot = async (clip) => Buffer.from((await call('Page.captureScreenshot', {format: 'jpeg', quality: 95, clip})).data, 'base64');
 
 try {
-    await open(`file://${page}${store ? '?height=800' : ''}`, WIDTH, store ? 800 : HEIGHT);
+    const ffmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
+    const video = !store && !previews;
+    await open(`file://${page}${store ? '?height=800' : ''}`, WIDTH, store ? 800 : HEIGHT, video && ffmpeg ? VIDEO_SCALE : 1);
     const duration = await evaluate('window.DURATION');
 
     const capture = async (t, format) => {
@@ -113,23 +118,33 @@ try {
         console.log('previews in', framesDir);
     } else {
         const count = Math.round(duration * FPS);
-        const frames = [];
-        for (let frame = 0; frame < count; frame++) {
-            frames.push(await capture(frame / FPS, 'jpeg'));
-            if (frame % 150 === 0) console.log(`frame ${frame}/${count}`);
-        }
-        const ffmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
+        const welcomeCopy = join(here, '..', '..', '..', 'docs', 'promo.mp4');
         if (ffmpeg) {
-            frames.forEach((data, index) => writeFileSync(join(framesDir, `${String(index).padStart(5, '0')}.jpg`), Buffer.from(data, 'base64')));
-            const result = spawnSync('ffmpeg', ['-y', '-framerate', String(FPS), '-i', join(framesDir, '%05d.jpg'), '-vf', 'scale=in_range=full:out_range=tv,format=yuv420p', '-c:v', 'libx264',
-                '-crf', '18', '-preset', 'slow', '-movflags', '+faststart', output], {stdio: 'inherit'});
-            if (result.status !== 0) throw new Error('ffmpeg failed');
+            // Lossless frames, written as they come: at 1440p they would not fit in memory.
+            for (let frame = 0; frame < count; frame++) {
+                writeFileSync(join(framesDir, `${String(frame).padStart(5, '0')}.png`), Buffer.from(await capture(frame / FPS, 'png'), 'base64'));
+                if (frame % 150 === 0) console.log(`frame ${frame}/${count}`);
+            }
+            const encode = (scale, crf, file) => {
+                const result = spawnSync('ffmpeg', ['-y', '-framerate', String(FPS), '-i', join(framesDir, '%05d.png'),
+                    '-vf', `scale=${scale}:flags=lanczos:in_range=full:out_range=tv,format=yuv420p`, '-c:v', 'libx264', '-crf', String(crf),
+                    '-preset', 'slow', '-tune', 'animation', '-profile:v', 'high', '-colorspace', 'bt709', '-color_primaries', 'bt709',
+                    '-color_trc', 'bt709', '-movflags', '+faststart', file], {stdio: 'inherit'});
+                if (result.status !== 0) throw new Error('ffmpeg failed');
+            };
+            encode(`${WIDTH * VIDEO_SCALE}:${HEIGHT * VIDEO_SCALE}`, 14, output);
+            // The extension's welcome page plays this copy.
+            encode(`${WIDTH}:${HEIGHT}`, 20, welcomeCopy);
             rmSync(framesDir, {recursive: true, force: true});
         } else {
+            const frames = [];
+            for (let frame = 0; frame < count; frame++) {
+                frames.push(await capture(frame / FPS, 'jpeg'));
+                if (frame % 150 === 0) console.log(`frame ${frame}/${count}`);
+            }
             await encodeInChrome(frames);
+            copyFileSync(output, welcomeCopy);
         }
-        // The extension's welcome page plays this copy.
-        copyFileSync(output, join(here, '..', '..', '..', 'docs', 'promo.mp4'));
         console.log('video:', output);
     }
 } finally {
