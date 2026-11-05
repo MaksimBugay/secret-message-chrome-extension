@@ -1,6 +1,6 @@
 // What a reply typed in a text box answers, for the history of "Convert into secret message" (the widget's
-// convertFocused): the caption of the commented post or the answered comment (sites with comments on posts), or the last
-// message of the open chat (chat sites). The selectors come from the page's site (js/sites/); when none matches, the
+// convertFocused): the caption of the commented post, with the answered comment when the reply answers one (sites with
+// comments on posts), or the last message of the open chat (chat sites). The selectors come from the page's site (js/sites/); when none matches, the
 // history is left as it is.
 window.SecretMessageConversationContext = (function () {
     'use strict';
@@ -141,8 +141,9 @@ window.SecretMessageConversationContext = (function () {
         /**
          * @param {Element} editor The text box with the reply.
          * @param {string} text Its text.
-         * @returns {{context: {kind: 'post' | 'comment' | 'message', text: string} | null, opener: string}} What the
-         * reply answers, and the name of the answered commenter the reply starts with (kept out of the secret).
+         * @returns {{context: {kind: 'post' | 'comment' | 'message', text: string, caption?: string} | null,
+         * opener: string}} What the reply answers (for a comment, also the caption of its post, empty when the post has
+         * none), and the name of the answered commenter the reply starts with (kept out of the secret).
          */
         find(editor, text) {
             const site = SecretMessageSites.forPage();
@@ -154,8 +155,8 @@ window.SecretMessageConversationContext = (function () {
             const comment = answeredComment(site, editor, text);
             const opener = comment ? openerOf(text, authorOf(site, comment)) : '';
             const answered = comment ? commentText(site, comment) : '';
-            if (answered) return {context: {kind: 'comment', text: answered}, opener};
             const caption = postCaption(site, editor);
+            if (answered) return {context: {kind: 'comment', text: answered, caption}, opener};
             return {context: caption ? {kind: 'post', text: caption} : null, opener};
         }
     });

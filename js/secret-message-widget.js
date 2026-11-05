@@ -924,13 +924,24 @@ window.SecretMessageWidget = (function () {
 
     const CONTEXT_NAMES = {post: 'Post caption', comment: 'Answered comment', message: 'Last chat message'};
 
+    // Cut to length, without leaving half of an emoji at the end.
+    const clip = (text, length) => text.slice(0, Math.max(length, 0)).replace(/[\uD800-\uDBFF]$/, '');
+
     // The history then holds only what this reply answers, cut to the history limit: earlier posts and chats left
-    // in the page have nothing to do with it.
+    // in the page have nothing to do with it. An answered comment comes after the caption of its post, which gives up
+    // its tail for the comment to fit.
     function startHistoryWith(context) {
         history.length = 0;
-        if (context) history.push(context.text.slice(0, HISTORY_LIMIT).replace(/[\uD800-\uDBFF]$/, ''));
+        if (!context) {
+            renderHistory();
+            return '';
+        }
+        const text = clip(context.text, HISTORY_LIMIT);
+        const caption = clip(context.caption ?? '', HISTORY_LIMIT - text.length);
+        if (caption) history.push(caption);
+        history.push(text);
         renderHistory();
-        return context ? ` ${CONTEXT_NAMES[context.kind]} added to history.` : '';
+        return ` ${caption ? 'Post caption and answered comment' : CONTEXT_NAMES[context.kind]} added to history.`;
     }
 
     async function convertFocused() {
