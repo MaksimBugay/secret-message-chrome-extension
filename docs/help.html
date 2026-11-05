@@ -347,10 +347,11 @@
             <h2>Privacy and security</h2>
             <ul>
                 <li><b>Encrypted in your browser.</b> The private message is compressed and encrypted with AES-GCM
-                    (256-bit key derived from your password with PBKDF2-SHA-256, 100,000 iterations, the workspace as
+                    (256-bit key derived from your password with PBKDF2-SHA-256, 600,000 iterations, the workspace as
                     salt) before it leaves the browser. The server never receives the message or the password.</li>
-                <li><b>What the server receives:</b> the encrypted message, the workspace, a SHA-256 hash of the
-                    password, the owner signature if set, and the conversation details used to write the phrase:
+                <li><b>What the server receives:</b> the encrypted message, the workspace, a password verifier
+                    (PBKDF2-SHA-256, 600,000 iterations, salted with the workspace; it is not the encryption key and is as
+                    slow to guess as it), the owner signature if set, and the conversation details used to write the phrase:
                     topic, style, language and the message history. The <b>history is sent as plain text</b>: it holds
                     the caption, comment or chat message you answer, and earlier public phrases. Do not put private
                     text into the history.</li>
