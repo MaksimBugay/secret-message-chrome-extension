@@ -124,7 +124,8 @@
             </div>
             <p>The public phrase is a key to look the message up, not the message itself: the private text is never
                 hidden inside the phrase, so the phrase can read completely naturally. The server stores only encrypted
-                bytes it cannot read.</p>
+                bytes it cannot read. The private message <b>expires in 30 days</b> and is removed without any trace: only
+                the public phrase remains, as an ordinary text.</p>
         </section>
 
         <section id="quick">
@@ -329,6 +330,9 @@
                     topic, style, language and the message history. The <b>history is sent as plain text</b>: it holds
                     the caption, comment or chat message you answer, and earlier public phrases. Do not put private
                     text into the history.</li>
+                <li><b>Private messages expire in 30 days.</b> 30 days after encoding, the encrypted message is removed from
+                    the server without any trace. Only the public phrase remains available; it no longer decodes, and
+                    nobody can restore the private message.</li>
                 <li><b>The public phrase is public.</b> Anybody can read it; only people with the workspace, password
                     and owner signature can read the private message.</li>
                 <li><b>Stored settings</b> are encrypted in each site's browser storage. The message history is never
@@ -349,6 +353,8 @@
                     notice appears and auto decoding pauses for an hour.</li>
                 <li><b>Need more?</b> For higher limits, for example 1000 encoded messages per day and unlimited
                     decoding, write to us at <a href="mailto:sfile4share@gmail.com">sfile4share@gmail.com</a>.</li>
+                <li><b>Private message lifetime: 30 days.</b> Then it is removed without any trace; only the public
+                    phrase remains.</li>
                 <li>Encrypted message: up to 32 KiB, which fits long messages since the text is compressed first.</li>
                 <li>Message history: up to 1500 characters in total; a single message cannot be longer.</li>
                 <li>Workspace up to 100, owner signature up to 200, topic up to 500, style up to 100 characters.</li>
@@ -361,7 +367,9 @@
             <details><summary>My friend does not see the private message</summary>
                 <p>Check that auto decoding is on (the toolbar icon shows <b>ON</b>), and that your friend entered
                     <b>exactly</b> the same workspace, password and owner signature <b>on that site</b>: settings are
-                    kept per site. Reload the page after saving, then hold the pointer over the comment for a moment.</p></details>
+                    kept per site. Reload the page after saving, then hold the pointer over the comment for a moment. Private
+                    messages expire in 30 days and are removed without any trace: older phrases remain only as public
+                    text.</p></details>
             <details><summary>Convert into secret message does nothing</summary>
                 <p>Put the cursor in the text box first, and check the hot key at
                     <code>chrome://extensions/shortcuts</code>. After installing or updating the extension, reload the
