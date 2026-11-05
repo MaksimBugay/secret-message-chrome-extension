@@ -91,6 +91,7 @@
         <a class="sub" href="#conversation">Conversation details</a>
         <a class="sub" href="#save">Save, export, import</a>
         <a class="sub" href="#share">Sharing settings safely</a>
+        <a class="sub" href="#invite">Invite a friend</a>
         <a href="#sites">Supported sites</a>
         <a href="#keys">Hot keys</a>
         <a href="#privacy">Privacy and security</a>
@@ -137,7 +138,8 @@
                 <li><strong>Agree on a workspace and password</strong>Open a site where you will talk (for example
                     facebook.com), click the Secret Message icon and go to <i>Settings → Encryption</i>. Keep or generate
                     a workspace and enter a password: they are saved automatically. Share both with your friend privately:
-                    export the settings and send the file with <a href="https://secure.fileshare.ovh/file-transfer-embedded.html">Secure FileShare file transfer</a> (see <a href="#share">Sharing settings
+                    the easiest way is an <a href="#invite">invite link</a> (right-click → <i>Invite a friend (copy join
+                    link)</i>), sent through a private channel; or export the settings and send the file with <a href="https://secure.fileshare.ovh/file-transfer-embedded.html">Secure FileShare file transfer</a> (see <a href="#share">Sharing settings
                     safely</a>), or tell them in person. Your friend enters or imports the same values.</li>
                 <li><strong>Write your private message in a comment box</strong>Click into a comment, reply or chat
                     box and type the private message.</li>
@@ -289,11 +291,28 @@
                 <li>Your friend imports the file with the upload icon in the widget, on each site you talk on; it is
                     saved automatically. Delete the file afterwards.</li>
             </ol>
-            <p><b>Invite link.</b> Right-click any page and choose <i>Invite a friend (copy join link)</i>: a link to the
-                join page with your settings (without the message history) is copied to the clipboard. Your friend opens
-                it, saves the settings file and installs the extension. The settings are in the part of the link after
-                <code>#</code>, which is not sent to the server, but the link holds your password: send it only through
-                a private channel.</p>
+
+            <h3 id="invite">Invite a friend with a join link</h3>
+            <p>The quickest way to bring a friend into your conversation: one link gives them the extension and your
+                settings.</p>
+            <ol>
+                <li>On the site where you talk, set up the workspace and password (<i>Settings → Encryption</i>).</li>
+                <li>Right-click anywhere on the page and choose <i>Invite a friend (copy join link)</i>. The join link
+                    is copied to the clipboard; a short note on the page confirms it.</li>
+                <li>Send the link to your friend through a private channel: in person, an end-to-end encrypted
+                    messenger or the <a href="https://secure.fileshare.ovh/file-transfer-embedded.html">Secure FileShare
+                    file transfer</a>. Never post it publicly.</li>
+                <li>Your friend opens the link and clicks <b>Join</b>: the browser saves the settings file
+                    (<code>obfuscation-settings.json</code>) and then opens the extension in the Chrome Web Store.</li>
+                <li>After installing, your friend opens the widget on the same site, goes to <i>Settings</i>, imports
+                    the file with the upload icon and deletes the file afterwards. Settings are kept per site, so they
+                    import it on each site you talk on.</li>
+            </ol>
+            <p>The link holds the workspace, password, owner signature, topic, style and language; the message history
+                is left out. The settings are in the part of the link after <code>#</code>, which browsers never send to
+                any server, the join page included: it reads them in your friend's browser. Still, <b>anyone with the
+                link can read your messages</b>, so treat it like the password itself. Without a workspace or password
+                the menu item opens <i>Settings → Encryption</i> instead.</p>
         </section>
 
         <section id="sites">
@@ -338,6 +357,9 @@
                 <li><b>Private messages expire in 30 days.</b> 30 days after encoding, the encrypted message is removed from
                     the server without any trace. Only the public phrase remains available; it no longer decodes, and
                     nobody can restore the private message.</li>
+                <li><b>Invite links</b> hold your settings, password included, after the <code>#</code>: that part of a
+                    link is never sent to a server, but anybody who gets the link can read your messages. Send it only
+                    privately.</li>
                 <li><b>The public phrase is public.</b> Anybody can read it; only people with the workspace, password
                     and owner signature can read the private message.</li>
                 <li><b>Stored settings</b> are encrypted in each site's browser storage. The message history is never
@@ -384,6 +406,13 @@
                     each internet connection (IP address). Try again the next day; to save lookups, turn auto decoding off
                     with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> when you are not reading secret messages. Need
                     more, for example 1000 encoded messages per day and unlimited decoding? Write to us at <a href="mailto:sfile4share@gmail.com">sfile4share@gmail.com</a>.</p></details>
+            <details><summary>The join page says the invitation is missing or damaged</summary>
+                <p>Some messengers cut long links or drop the part after <code>#</code>. Ask your friend to copy the
+                    whole link again (right-click → <i>Invite a friend (copy join link)</i>) and send it as plain text,
+                    or send the exported settings file instead (see <a href="#share">Sharing settings safely</a>).</p></details>
+            <details><summary>An invite link was shared by mistake</summary>
+                <p>Anyone with it can read your messages. Agree on a new password (the key button in <i>Settings →
+                    Encryption</i> generates a strong one) and send a new invite link privately.</p></details>
             <details><summary>"The text could not be replaced"</summary>
                 <p>Some editors refuse changes made by extensions. The public phrase is in the clipboard: select your
                     text and paste.</p></details>
