@@ -5,7 +5,7 @@ SecretMessageSites.register({
     host: /(^|\.)linkedin\.com$/i,
     topic: 'LinkedIn post',
     post: '[role="listitem"][componentkey^="update-card-focus"]',
-    caption: '[id^="translatable-commentary"] [data-testid="expandable-text-box"]:not([componentkey^="replaceableComment_"] *)',
+    caption: '[role="listitem"][componentkey^="update-card-focus"] [data-testid="expandable-text-box"]:not([componentkey^="replaceableComment_"] *)',
     comment: '[componentkey^="replaceableComment_"]',
     commentText: '[data-testid="expandable-text-box"]',
     // The name is the first line of the commenter's link; next to a badge ("Anna Smith • 2nd") it is the visible copy,
